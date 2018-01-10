@@ -10,24 +10,53 @@
 install.packages("sp")
 install.packages("tigris")
 install.packages("tidycensus")
+install.packages("acs")
 
 library(tidycensus)
 library(tidyverse)
 library(ggplot2)
 library(magrittr)
-
+library(acs)
+library(stringr)
+library(XML)
+library(plyr)
 ########################
-# Import data 
+# Import key
 ########################
 census_api_key("6b2a3bf0f9ec6f097062213125bc40cad0351578") 
 
+
+########################
+# Search variables using tidycensus package
+########################
 v15 <- load_variables(2016, "acs5", cache = TRUE)
 View(v15)
 
-# acs_cook <- get_acs( geography = "tract"
-#                      , table = "S1501"
-#                      , year = "2016"
-#                      , state = "IL"
-#                      , county = "Cook County"
-#                      , geometry = TRUE
-#                      )
+unemployment <- get_acs(geography = "state"
+                        , variables = "unem"
+                        , state =
+                        )
+
+########################
+# Search variables using acs package
+########################
+api.key.install("6b2a3bf0f9ec6f097062213125bc40cad0351578")
+
+my.tract <- geo.make(state = "IL"
+                     , county = "Cook"
+                     , check = T
+                     )
+
+total.pop <- acs.fetch( endyear = 2016
+                        , span = 5
+                        , geography = my.tract
+                        , table.name = "Employment Status"
+                        , dataset = "acs"
+                        , col.names = "auto"
+                        , 
+                      )
+View(total.pop@estimate)
+
+
+
+
