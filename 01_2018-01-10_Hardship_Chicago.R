@@ -10,6 +10,15 @@
 ########################
 library(ggplot2)
 library(magrittr)
+library(MASS)
+library(car)
+library(mosaic)
+library(knitr)
+library(tidyverse)
+library(ggformula)
+library(gridExtra)
+library(broom)
+library(GGally)
 
 ########################
 # Import and explore data 
@@ -20,18 +29,6 @@ colnames(indicators.chicago) # Community area number, Community area name, Perce
                              # Percent households below poverty, Percent aged 16 unemployed, Percent aged 25 without High School Diploma, 
                              # Percent aged under 18 or over 64, Per capita income, Hardship Index
 
-
-# Create a new column to recalculate the hardship index
-recalc.trial1 <- vector("numeric",  length = 78)
-std.cro.hou <- vector("numeric",  length = 78)
-std.dep <- vector("numeric",  length = 78)
-std.inc <- vector("numeric",  length = 78)
-std.no.hsd <- vector("numeric",  length = 78)
-std.pov <- vector("numeric",  length = 78)
-std.une <- vector("numeric",  length = 78)
-
-# Add the columns 
-indicators.chicago<- cbind(indicators.chicago, std.cro.hou, std.dep, std.inc, std.no.hsd, std.pov, std.une)
 
 ########################
 # Re-calculate Hardship index 
@@ -196,9 +193,11 @@ indicators.chicago<- cbind(indicators.chicago, std.cro.hou, std.dep, std.inc, st
 # Import data again (Start off with clean data)  
   trial4 <- read.csv("https://data.cityofchicago.org/api/views/kn9c-c2s2/rows.csv?accessType=DOWNLOAD")
 
+# Exclude Chicago observation  
+  trial4  <- trial4[1:77,]
+
 # I am going to do each step of the formula independently  
 # I already identified the max and min for each indicator
-
   
   # I add values to the column for each indicator that shows the value (Observation-indicator.min) 
   trial4$crowded.housing.diff <- trial4$PERCENT.OF.HOUSING.CROWDED-cro.hou.min
@@ -206,7 +205,7 @@ indicators.chicago<- cbind(indicators.chicago, std.cro.hou, std.dep, std.inc, st
   trial4$poverty.diff <- trial4$PERCENT.HOUSEHOLDS.BELOW.POVERTY - bel.pov.min
   trial4$dependency.diff <- trial4$PERCENT.AGED.UNDER.18.OR.OVER.64 - dep.min
   trial4$unemployment.diff <- trial4$PERCENT.AGED.16..UNEMPLOYED - une.min
-  trial4$income.diff <- trial4$PER.CAPITA.INCOME -inc.min
+  trial4$income.diff <- inc.max - trial4$PER.CAPITA.INCOME
   
   # I add values to the column for each indicator that shows the difference divided by the range
   trial4$crowded.housing.rat <- (trial4$crowded.housing.diff/(cro.hou.max-cro.hou.min))*100
@@ -214,15 +213,42 @@ indicators.chicago<- cbind(indicators.chicago, std.cro.hou, std.dep, std.inc, st
   trial4$poverty.rat <- (trial4$poverty.diff/ (bel.pov.max - bel.pov.min))*100
   trial4$dependency.rat <- (trial4$dependency.diff / (dep.max-dep.min))*100
   trial4$unemployment.rat <- (trial4$unemployment.diff/ (une.max- une.min))*100
-  trial4$income.rat <- trial4$income.diff/(inc.max-inc.min)*100
+  trial4$income.rat <- trial4$income.diff/(inc.min-inc.max)*100
   
   
   # Hardship index
   trial4$hardship.index.2 <- (1/6)*(trial4$crowded.housing.rat + trial4$education.attainment.rat + trial4$poverty.rat + trial4$dependency.rat + trial4$unemployment.rat+ trial4$income.rat)
   trial4$difference <- trial4$HARDSHIP.INDEX-trial4$hardship.index.2
   
+  ###########################
+  # TRIAL 5
+  ###########################
+ 
+  # Part a
+  # In this trial I try to derive a formula based on the standardized values
+  # and the actual score. I want to see if there is any formula to it. 
   
+  # The documentation says that each of the values are equally weighed,
+  # so I am going to see if there is a coefficient that is applied to the sum 
+  # of the values. 
   
+  trial4$coefficients <-  trial4$HARDSHIP.INDEX/(trial4$crowded.housing.rat + trial4$education.attainment.rat + trial4$poverty.rat + trial4$dependency.rat + trial4$unemployment.rat+ trial4$income.rat)
   
+  # There seems to be something interesting: the hardship index and the coefficients seem 
+  # to correlate. This means that the coefficient by which we multiply the sum of the indicators
+  # increases as the hardship increases. 
+  
+  # Part b 
+  # Straightup try a linear correalation of the standardized values
+  
+  model1 <- lm(HARDSHIP.INDEX ~ crowded.housing.rat + education.attainment.rat + poverty.rat + dependency.rat + unemployment.rat + income.rat , data = trial4)
+  myvars <- c( "HARDSHIP.INDEX" , "hardship.index.2" , "difference")
+ 
+  trial5 <- trial4[myvars]
+  trial5$yhat <- fitted(model1)
+  trial5$diff.yhat <- trial5$HARDSHIP.INDEX-trial5$yhat
+  
+  # The difference seems to be large, however it is the best model and all of the coefficients are significant. 
+
   
   
