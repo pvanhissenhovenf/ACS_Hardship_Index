@@ -32,10 +32,7 @@ census_api_key("6b2a3bf0f9ec6f097062213125bc40cad0351578")
 v15 <- load_variables(2016, "acs5", cache = TRUE)
 View(v15)
 
-unemployment <- get_acs(geography = "state"
-                        , variables = "unem"
-                        , state =
-                        )
+
 
 ########################
 # Search variables using acs package
@@ -53,9 +50,8 @@ total.pop <- acs.fetch( endyear = 2016
                         , table.name = "Employment Status"
                         , dataset = "acs"
                         , col.names = "auto"
-                        , 
                       )
-View(total.pop@estimate)
+
 
 
 
