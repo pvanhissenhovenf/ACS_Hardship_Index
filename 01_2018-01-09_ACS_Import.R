@@ -47,9 +47,10 @@ my.tract <- geo.make(state = "IL"
 total.pop <- acs.fetch( endyear = 2016
                         , span = 5
                         , geography = my.tract
-                        , table.name = "Employment Status"
+                        , table.name = "B01001"
                         , dataset = "acs"
                         , col.names = "auto"
+                        , case.sensitive = FALSE
                       )
 
 
