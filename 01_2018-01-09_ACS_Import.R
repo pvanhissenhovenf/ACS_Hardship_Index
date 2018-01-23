@@ -168,6 +168,16 @@ chicago.census.tracts <- readOGR( "https://data.cityofchicago.org/api/geospatial
                                   , "OGRGeoJSON"
                                   , stringsAsFactors = FALSE
 )
+=======
+total.pop <- acs.fetch( endyear = 2016
+                        , span = 5
+                        , geography = my.tract
+                        , table.name = "B01001"
+                        , dataset = "acs"
+                        , col.names = "auto"
+                        , case.sensitive = FALSE
+                      )
+
 
 # What's inside the data slot?
 str( object = slot( object = chicago.census.tracts, name = "data" ) )
