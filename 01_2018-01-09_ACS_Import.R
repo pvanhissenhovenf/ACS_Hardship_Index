@@ -8,6 +8,7 @@
 library( acs )
 library( sp )
 library( rgdal )
+library( stringr )
 
 # my personal acs api key
 my.key <- "6b2a3bf0f9ec6f097062213125bc40cad0351578"
@@ -168,15 +169,6 @@ chicago.census.tracts <- readOGR( "https://data.cityofchicago.org/api/geospatial
                                   , "OGRGeoJSON"
                                   , stringsAsFactors = FALSE
 )
-=======
-total.pop <- acs.fetch( endyear = 2016
-                        , span = 5
-                        , geography = my.tract
-                        , table.name = "B01001"
-                        , dataset = "acs"
-                        , col.names = "auto"
-                        , case.sensitive = FALSE
-                      )
 
 
 # What's inside the data slot?
@@ -204,3 +196,85 @@ View( x = slot( object = chicago.census.tracts, name = "data")[ which(
 # overlay to spdf on top of each other
 plot( x = chicago.census.tracts, col = "#4d4d4d", border = "#4d4d4d")
 plot( x = comarea606, col = "#CCCCCC", border = "#CCCCCC", add = TRUE)
+
+##############
+# I will create geo.make to create user-specified geographies
+##############
+# This is the guide used http://eglenn.scripts.mit.edu/citystate/wp-content/uploads/2013/06/wpid-working_with_acs_R3.pdf
+
+# Trial 1 to create geo.set for community area no.1
+
+ca1 <- geo.make(  state = "IL"
+                      , county = 031
+                      , tract = c(010502 , 010503 , 010201 , 010501 , 
+                                  830600 , 010400, 010100, 010300 , 010600 , 010202 )
+                      , check = TRUE
+                      )
+
+combine(ca1) = TRUE
+combine.term(ca1) = "com_ar.1"
+pci.df <- acs.fetch( endyear = 2016
+                     , span = 5
+                     , geography = com.ar1
+                     , variable = "B19301_001"
+                     , key = my.key
+)
+# I keep getting this error when I try to use com.ar1 as my geography
+# Error in read.table(file = file, header = header, sep = sep, quote = quote,  : 
+# no lines available in input 
+
+
+
+###############
+# I will now filter data to describe socio-economic descriptors
+###############
+#### Population for Dependency
+  # First I want to understand what each table contains
+    names(attributes(population.df)) #  [1] "endyear"        "span"           "acs.units"      "currency.year" 
+                                     #  [5] "modified"       "geography"      "acs.colnames"   "estimate"      
+                                     #  [9] "standard.error" "class" 
+    attr( population.df , "acs.colnames") # Tables numbered B01001_01 - B01001_049)
+                                          # Includes data on 49 tables in all census tracts. Dividing population by age group and sex. 
+  # We need to figure out what population is younger than 18 or older than 64.
+    pop.vars <- c(  "B01001_003" # Males under 5
+                    , "B01001_004" # Males 5-9
+                    , "B01001_005" # Males 10-14
+                    , "B01001_006" # Males 15-17
+                    , "B01001_027" # Females under 5
+                    , "B01001_028" # Females 5-9 
+                    , "B01001_029" # Females 10-14
+                    , "B01001_030" # Females 15-17
+                    , "B01001_020" # Males 65-66
+                    , "B01001_021" # Males 67-69
+                    , "B01001_022" # Males 70-74
+                    , "B01001_023" # Males 75-79
+                    , "B01001_024" # Males 80-84
+                    , "B01001_025" # Males 85 and older 
+                    , "B01001_044" # Females 65-66
+                    , "B01001_045" # Females 67-69
+                    , "B01001_046" # Females 70-74
+                    , "B01001_047" # Females 75-79
+                    , "B01001_048" # Females 80-84
+                    , "B01001_049" # Females 85 and older 
+              # We also need to add values for the entire population to obtain percentages
+                    , "B01001_001" # Total population              
+              
+               )
+    
+  # Convert the data to a data.frame 
+    dependency.df <- data.frame( population.df@geography$state
+                                , population.df@geography$county
+                                , population.df@geography$tract
+                                , population.df@estimate[, pop.vars]
+                                , stringsAsFactors = FALSE
+                                )
+    dependency.df <- as.matrix(dependency.df)
+                                
+  # Calculate the percentage of people in dependency
+  # This means that we add the populations under 18 and over 64 and divide by the total of the population
+    
+    dependency.df$percent <-  sum(dependency.df[,3:23])
+    
+    
+    
+
