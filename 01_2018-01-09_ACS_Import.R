@@ -202,26 +202,9 @@ plot( x = comarea606, col = "#CCCCCC", border = "#CCCCCC", add = TRUE)
 ##############
 # This is the guide used http://eglenn.scripts.mit.edu/citystate/wp-content/uploads/2013/06/wpid-working_with_acs_R3.pdf
 
-# Trial 1 to create geo.set for community area no.1
-
-ca1 <- geo.make(  state = "IL"
-                      , county = 031
-                      , tract = c(010502 , 010503 , 010201 , 010501 , 
-                                  830600 , 010400, 010100, 010300 , 010600 , 010202 )
-                      , check = TRUE
-                      )
-
-combine(ca1) = TRUE
-combine.term(ca1) = "com_ar.1"
-pci.df <- acs.fetch( endyear = 2016
-                     , span = 5
-                     , geography = com.ar1
-                     , variable = "B19301_001"
-                     , key = my.key
-)
-# I keep getting this error when I try to use com.ar1 as my geography
-# Error in read.table(file = file, header = header, sep = sep, quote = quote,  : 
-# no lines available in input 
+ only.chicago.ct <- population.df@geography[which(population.df@geography$tract %in% chicago.census.tracts@data$tractce10),]
+ population.df@geography$comarea_n <- "NA"  
+ 
 
 
 
@@ -260,6 +243,8 @@ pci.df <- acs.fetch( endyear = 2016
                     , "B01001_001" # Total population              
               
                )
+  # try to clean the data from population.df
+  
     
   # Convert the data to a data.frame 
     dependency.df <- data.frame( population.df@geography$state
@@ -268,12 +253,12 @@ pci.df <- acs.fetch( endyear = 2016
                                 , population.df@estimate[, pop.vars]
                                 , stringsAsFactors = FALSE
                                 )
-    dependency.df <- as.matrix(dependency.df)
+    dependency.df$population.df.geography.tract <- as.numeric(dependency.df$population.df.geography.tract)
                                 
   # Calculate the percentage of people in dependency
   # This means that we add the populations under 18 and over 64 and divide by the total of the population
     
-    dependency.df$percent <-  sum(dependency.df[,3:23])
+    dependency.df$percent <-  rowsum(dependency.df[,4:23])
     
     
     
