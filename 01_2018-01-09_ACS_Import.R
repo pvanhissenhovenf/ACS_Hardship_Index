@@ -11,6 +11,8 @@ library( acs )
 library( dplyr )
 library( sp )
 library( rgdal )
+library( reshape )
+library( reshape2)
 
 ## load necessary data
 
@@ -310,7 +312,7 @@ pop.vars <- c(  "NAME"
                 , "state"
                 , "county"
                 , "tract"
-                ,  "B01001_003" # Males under 5
+                , "B01001_003" # Males under 5
                 , "B01001_004" # Males 5-9
                 , "B01001_005" # Males 10-14
                 , "B01001_006" # Males 15-17
@@ -334,8 +336,7 @@ pop.vars <- c(  "NAME"
                 , "B01001_001" # Total population              
                 
 )
-# I then remove all of the tables that are not relevant
-population.df <- population.df[,pop.vars]
+
 
 # Select all of the values for the census tracts that correspond to the city of Chicago
 population.chicago.only.df <- left_join( x = master.census.tract.community.area.crosswalk.df
@@ -343,16 +344,25 @@ population.chicago.only.df <- left_join( x = master.census.tract.community.area.
                                          , by = c("tractce10" = "tract")
 )
 
-# Aggregate for the community areas 
-population.chicago.only.df<-  aggregate( x = population.chicago.only.df[,8:27]
-                                         , by = population.chicago.only.df[c("commarea_n", "community")]
-                                         , FUN = sum  
-)
+ dependency.df <- 
+  population.chicago.only.df %>%
+  group_by( community )%>%
+  summarize(total.population = sum(B01001_001)
+            , dependency = sum( B01001_003 , B01001_004 , B01001_005 , B01001_006
+                                , B01001_027 , B01001_028 , B01001_029 , B01001_030
+                                , B01001_020 , B01001_021 , B01001_022 , B01001_023
+                                , B01001_024 , B01001_025 , B01001_044 , B01001_046
+                                , B01001_047 , B01001_048 , B01001_049 ) 
+            , dependency.ratio = dependency / total.population *100 ) 
+chi.dependency <- c( "CHICAGO" 
+                     , sum(dependency.df$total.population , na.rm = TRUE) 
+                     ,  sum(dependency.df$dependency , na.rm = TRUE)
+                     , sum( dependency.df$dependency , na.rm = TRUE) / sum( dependency.df$total.population , na.rm = TRUE) *100
+                     )
 
-
-# Calculate the percentage of people in dependency
-# This means that we add the populations under 18 and over 64 and divide by the total of the population
-population.chicago.only.df$dependency.score <-  (rowSums(population.chicago.only.df[,3:21], na.rm = TRUE)/population.chicago.only.df$B01001_001)*100
+dependency.df <- rbind( dependency.df , chi.dependency)
+dependency.vars <- c( "community", "dependency.ratio")
+dependency.df <- dependency.df[,dependency.vars ]  
 
 
 ################
@@ -396,17 +406,27 @@ education.chicago.only.df <- left_join( x = master.census.tract.community.area.c
                                         , y = education.df
                                         , by = c("tractce10" = "tract")
 )
-# Aggregate for the community areas 
-education.chicago.only.df<-  aggregate( x = education.chicago.only.df[,8:23]
-                                        , by = education.chicago.only.df[c("commarea_n", "community")]
-                                        , FUN = sum  
-)
 
 
-# Calculate the percentage of people over 25 without a highschool diploma
-# This means that we add the row values and divide by the total of the population
-
-education.chicago.only.df$education.score <-  (rowSums(education.chicago.only.df[,3:16], na.rm = TRUE)/education.chicago.only.df$B15002_001)*100
+without.diploma.df <- 
+  education.chicago.only.df  %>%
+  group_by( community )%>%
+  summarize(total.population = sum(B15002_001)
+            , education = sum(B15002_003 , B15002_004 , B15002_005 , B15002_006
+                                , B15002_007 , B15002_008 , B15002_009 , B15002_010
+                                , B15002_020 , B15002_021 , B15002_022 , B15002_023
+                                , B15002_024 , B15002_025 , B15002_026 , B15002_027
+                                 
+                               ) 
+            , education.ratio = education / total.population *100 )
+chi.education <- c("CHICAGO"
+                   , sum( without.diploma.df$total.population , na.rm = TRUE)
+                   , sum( without.diploma.df$education , na.rm = TRUE )
+                   , sum( without.diploma.df$education , na.rm = TRUE )/sum(without.diploma.df$total.population , na.rm = TRUE)*100 
+                   )
+without.diploma.df <- rbind( without.diploma.df , chi.education)
+without.diploma.vars <- c( "community", "education.ratio")
+without.diploma.df <- without.diploma.df[,without.diploma.vars ]  
 
 
 ################
@@ -430,17 +450,23 @@ poverty.chicago.only.df <- left_join( x = master.census.tract.community.area.cro
                                       , y = poverty.df
                                       , by = c("tractce10" = "tract")
 )
-# Aggregate for the community areas 
-poverty.chicago.only.df <-  aggregate( x = poverty.chicago.only.df[,7:8]
-                                       , by = poverty.chicago.only.df[c("commarea_n", "community")]
-                                       , FUN = sum  
-)
 
-# Calculate the percentage of households with income below the poverty level
-# This means that we divide the number of households below the poverty level by the total number of households
-poverty.chicago.only.df$poverty.score <- (poverty.chicago.only.df$B17017_002/poverty.chicago.only.df$B17017_001)*100
-
-
+# Aggregate by community area
+households.below.poverty <- 
+  poverty.chicago.only.df %>%
+  group_by( community ) %>% 
+  summarize( total.households = sum( B17017_001)
+            , below.poverty = sum( B17017_002)
+            , poverty.ratio = below.poverty / total.households *100
+            )
+chi.poverty <- c("CHICAGO"
+                 , sum( households.below.poverty$total.households , na.rm = TRUE )
+                 , sum(households.below.poverty$below.poverty , na.rm = TRUE )
+                 , sum(households.below.poverty$below.poverty , na.rm = TRUE ) / sum( households.below.poverty$total.households , na.rm = TRUE)*100
+                 )
+households.below.poverty <- rbind( households.below.poverty , chi.poverty )
+below.poverty.vars <- c( "community", "poverty.ratio")
+households.below.poverty <- households.below.poverty[,below.poverty.vars ]  
 
 ################
 # Per capita Income
@@ -460,12 +486,16 @@ pci.chicago.only.df <- left_join( x = master.census.tract.community.area.crosswa
 
 pci.chicago.only.df <- filter(pci.chicago.only.df , pci.chicago.only.df$income > 0)
 
-# Aggregate for the community areas 
-pci.chicago.only.df <-  aggregate( x = pci.chicago.only.df[,7]
-                                   , by = pci.chicago.only.df[c("commarea_n", "community")]
-                                   , FUN = mean  
-)
-colnames(pci.chicago.only.df)[3] <- "income"
+# Aggregate by community area
+per.capita.income <-
+  pci.chicago.only.df %>%
+  group_by( community ) %>%
+  summarize( mean.pci = mean(income))
+
+chi.income <- c( "CHICAGO" 
+                 , mean(per.capita.income$mean.pci)
+                 )
+per.capita.income <- rbind( per.capita.income , chi.income)
 
 ################
 # Employment
@@ -542,18 +572,38 @@ employment.chicago.only.df <- left_join( x = master.census.tract.community.area.
                                          , by = c("tractce10" = "tract")
 )
 
-# Aggregate for the community areas 
-employment.chicago.only.df <-  aggregate( x = employment.chicago.only.df[,8:59]
-                                          , by = employment.chicago.only.df[c("commarea_n", "community")]
-                                          , FUN = sum  
-)
+# Aggregate by community area 
+unemployed.over.16 <- 
+  employment.chicago.only.df %>%
+  group_by( community )%>%
+  summarize( unemployed = sum( B23001_008 ,  B23001_015 ,  B23001_022 ,  B23001_029 
+                              , B23001_036 ,  B23001_043 ,  B23001_050 ,  B23001_057   
+                              , B23001_064 ,  B23001_071 ,  B23001_076 ,  B23001_081  
+                              , B23001_086 ,  B23001_094 ,  B23001_101 ,  B23001_108  
+                              , B23001_115 ,  B23001_122 ,  B23001_129 ,  B23001_136  
+                              , B23001_143 ,  B23001_150 ,  B23001_157 ,  B23001_162  
+                              , B23001_167 ,  B23001_172 
+                               )
+            , labor.force = sum(  B23001_004  ,  B23001_011 ,  B23001_018  ,  B23001_025  
+                                , B23001_032  ,  B23001_039 ,  B23001_046  ,  B23001_053  
+                                , B23001_060  ,  B23001_067 ,  B23001_074  ,  B23001_079  
+                                , B23001_084  ,  B23001_090 ,  B23001_097  ,  B23001_104 
+                                , B23001_111  ,  B23001_118 ,  B23001_125  ,  B23001_132  
+                                , B23001_139  ,  B23001_146 ,  B23001_153  ,  B23001_160  
+                                ,  B23001_165 ,  B23001_170  
+                                )
+            , unemployment.ratio = unemployed / labor.force *100 
+            )
+            
+chi.unemployment <- c( "CHICAGO"
+                       , sum(unemployed.over.16$unemployed)
+                       , sum(unemployed.over.16$labor.force)
+                       , sum(unemployed.over.16$unemployed) / sum(unemployed.over.16$labor.force) *100
+                      )
+unemployed.over.16 <- rbind( unemployed.over.16 , chi.unemployment)
 
-# Calculate the unemployment rate
-# We have to add the total unemployment and divide it by the size of the labor force
-unemployment <- rowSums(employment.chicago.only.df[,3:28], na.rm = TRUE)
-labor.force <- rowSums(employment.chicago.only.df[,29:54])
-employment.chicago.only.df$unemployment.score <- (unemployment/labor.force)*100
-
+unemployed.vars <- c( "community", "unemployment.ratio")
+unemployed.over.16 <- unemployed.over.16[,unemployed.vars]
 
 
 ################
@@ -584,64 +634,87 @@ crowded.housing.chicago.only.df <- left_join( x = master.census.tract.community.
                                               , y = occupants.df
                                               , by = c("tractce10" = "tract")
 )
-# Aggregate for the community areas 
-crowded.housing.chicago.only.df <-  aggregate( x = crowded.housing.chicago.only.df[,8:14]
-                                               , by = crowded.housing.chicago.only.df[c("commarea_n", "community")]
-                                               , FUN = sum  
-)
 
-# Calculate the percentage of households with income below the poverty level
-# This means that we divide the number of households below the poverty level by the total number of households
-crowded.housing.chicago.only.df$crowded.housing.score <- (rowSums(crowded.housing.chicago.only.df[,3:8])/crowded.housing.chicago.only.df$B25014_001)*100
+# Aggregate by community area 
+housing.crowded <- 
+  crowded.housing.chicago.only.df %>%
+  group_by( community ) %>%
+  summarize( total.households = sum( B25014_001)
+            , crowded.households = sum(  B25014_005   ,  B25014_006   ,  B25014_007  
+                                       ,  B25014_011  ,  B25014_012   ,  B25014_013 
+                                       )
+            , crowded.ratio = crowded.households / total.households * 100
+    
+    ) 
 
+chi.crowded <- c( "CHICAGO"
+                  , sum( housing.crowded$total.households , na.rm = TRUE )
+                  , sum( housing.crowded$crowded.households , na.rm = TRUE )
+                  , sum( housing.crowded$crowded.households , na.rm = TRUE ) / sum( housing.crowded$total.households , na.rm = TRUE ) *100
+                 )
+
+housing.crowded <- rbind( housing.crowded , chi.crowded)
+
+housing.crowded.vars <- c( "community", "crowded.ratio")
+housing.crowded <- housing.crowded[,housing.crowded.vars]
+
+housing.crowded <- right_join( x = community.area.number.name.crosswalk.df 
+                              , y = housing.crowded 
+                              , by = c( "community" = "community"))
 
 ####################    
 # CREATE THE NEW TABLE
 ####################
+
+
 # Create a dataframe with all of the percentages from the individual indicators 
 
-hardship.index  <-  cbind.data.frame( population.chicago.only.df$commarea_n 
-                                      , population.chicago.only.df$community
-                                      , population.chicago.only.df$dependency.score
-                                      , poverty.chicago.only.df$poverty.score
-                                      , pci.chicago.only.df$income
-                                      , employment.chicago.only.df$unemployment.score 
-                                      , crowded.housing.chicago.only.df$crowded.housing.score
-                                      , education.chicago.only.df$education.score
-)
-
+hardship.index <- left_join( x = housing.crowded, y = households.below.poverty , by = c( "community" = "community") )
+hardship.index <- left_join( x =  hardship.index , y = unemployed.over.16 , by = c("community" = "community" ) )
+hardship.index <- left_join( x = hardship.index , y = without.diploma.df , by = c("community" = "community" ) ) 
+hardship.index <- left_join( x = hardship.index , y = dependency.df , by = c("community" = "community" ) )
+hardship.index <- left_join( x = hardship.index , y = per.capita.income , by = c("community" = "community" ) )
 # Rename the columns (make it comprehensible)  
-colnames(hardship.index) <- c("Community.Area.Number" , "COMMUNITY.AREA.NAME"
-                              , "PERCENT.AGED.UNDER.18.OR.OVER.64" , "PERCENT.HOUSEHOLDS.BELOW.POVERTY" 
-                              , "PER.CAPITA.INCOME" , "PERCENT.AGED.16..UNEMPLOYED"
-                              , "PERCENT.OF.HOUSING.CROWDED" , "PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA")
-
+colnames(hardship.index) <- c( "COMMUNITY.AREA.NAME", "Community.Area.Number"
+                               , "PERCENT.OF.HOUSING.CROWDED" , "PERCENT.HOUSEHOLDS.BELOW.POVERTY" 
+                               , "PERCENT.AGED.16..UNEMPLOYED" , "PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA"
+                               , "PERCENT.AGED.UNDER.18.OR.OVER.64" ,  "PER.CAPITA.INCOME" 
+                              )
+# Convert data to numeric 
+hardship.index$PERCENT.OF.HOUSING.CROWDED <- as.numeric( hardship.index$PERCENT.OF.HOUSING.CROWDED) 
+hardship.index$PERCENT.HOUSEHOLDS.BELOW.POVERTY  <- as.numeric(hardship.index$PERCENT.HOUSEHOLDS.BELOW.POVERTY)
+hardship.index$PERCENT.AGED.16..UNEMPLOYED <- as.numeric(hardship.index$PERCENT.AGED.16..UNEMPLOYED)
+hardship.index$PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA <- as.numeric(hardship.index$PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA )
+hardship.index$PERCENT.AGED.UNDER.18.OR.OVER.64 <- as.numeric(hardship.index$PERCENT.AGED.UNDER.18.OR.OVER.64)
+hardship.index$PER.CAPITA.INCOME <- as.numeric(hardship.index$PER.CAPITA.INCOME)
+  
 # Calculate the hardship index for the census tracts
 # Identify the min and max values 
-min.dependency <- min( hardship.index$Dependency , na.rm = TRUE )
-max.dependency <- max( hardship.index$Dependency , na.rm = TRUE  )
-min.poverty <- min( hardship.index$Poverty , na.rm = TRUE )
-max.poverty <- max( hardship.index$Poverty , na.rm = TRUE )
-min.income <- min( hardship.index$Income , na.rm = TRUE )
-max.income <- max( hardship.index$Income , na.rm = TRUE )
-min.employment <- min( hardship.index$Employment , na.rm = TRUE )
-max.employment <- max( hardship.index$Employment , na.rm = TRUE )
-min.housing <- min( hardship.index$Crowded_Housing , na.rm = TRUE )
-max.housing <- max( hardship.index$Crowded_Housing , na.rm = TRUE )
-min.education <- min( hardship.index$Education , na.rm = TRUE )
-max.education <- max( hardship.index$Education , na.rm = TRUE )
+min.dependency <- min( hardship.index$PERCENT.AGED.UNDER.18.OR.OVER.64 , na.rm = TRUE )
+max.dependency <- max( hardship.index$PERCENT.AGED.UNDER.18.OR.OVER.64 , na.rm = TRUE )
+min.poverty <- min( hardship.index$PERCENT.HOUSEHOLDS.BELOW.POVERTY , na.rm = TRUE )
+max.poverty <- max( hardship.index$PERCENT.HOUSEHOLDS.BELOW.POVERTY , na.rm = TRUE )
+min.income <- min( hardship.index$PER.CAPITA.INCOME , na.rm = TRUE )
+max.income <- max( hardship.index$PER.CAPITA.INCOME , na.rm = TRUE )
+min.employment <- min( hardship.index$PERCENT.AGED.16..UNEMPLOYED , na.rm = TRUE )
+max.employment <- max( hardship.index$PERCENT.AGED.16..UNEMPLOYED , na.rm = TRUE )
+min.housing <- min( hardship.index$PERCENT.OF.HOUSING.CROWDED , na.rm = TRUE )
+max.housing <- max( hardship.index$PERCENT.OF.HOUSING.CROWDED , na.rm = TRUE )
+min.education <- min( hardship.index$PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA , na.rm = TRUE )
+max.education <- max( hardship.index$PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA , na.rm = TRUE )
 
 # Standardize the values
-std.dependency  <- (( hardship.index$Dependency - min.dependency )/( max.dependency - min.dependency))*100
-std.poverty <- (( hardship.index$Poverty - min.poverty )/( max.poverty - min.poverty ))*100
-std.employment <- (( hardship.index$Employment - min.employment )/( max.employment - min.employment ))*100
-std.housing <- (( hardship.index$Crowded_Housing - min.housing)/( max.housing - min.housing ))*100
-std.education <- (( hardship.index$Education - min.education)/( max.education - min.education ))*100
+std.dependency  <- (( hardship.index$PERCENT.AGED.UNDER.18.OR.OVER.64 - min.dependency )/( max.dependency - min.dependency))*100
+std.poverty <- (( hardship.index$PERCENT.HOUSEHOLDS.BELOW.POVERTY - min.poverty )/( max.poverty - min.poverty ))*100
+std.employment <- (( hardship.index$PERCENT.AGED.16..UNEMPLOYED - min.employment )/( max.employment - min.employment ))*100
+std.housing <- (( hardship.index$PERCENT.OF.HOUSING.CROWDED - min.housing)/( max.housing - min.housing ))*100
+std.education <- (( hardship.index$PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA - min.education)/( max.education - min.education ))*100
 
-std.income <- (( hardship.index$Income - max.income )/(min.income - max.income ))*100
+std.income <- ((  hardship.index$PER.CAPITA.INCOME - max.income )/(min.income - max.income ))*100
 
 # Then calculate the hardship index for the census tracts. 
 
 hardship.index$HARDSHIP.INDEX <- (std.dependency + std.education + std.employment + std.housing + std.income + std.poverty)/6
 
 saveRDS(hardship.index, "/Users/patricia/Desktop/r/ACS_Hardship_Index/hardship.rds")
+
