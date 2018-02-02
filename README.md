@@ -16,9 +16,9 @@ With the map, you can visually analyze the socioeconomic indicators across diffe
 ![how to run](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/run.png)
 
 # Screenshots of ACS_Hardship_Index app
-![per capita income](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/income.png)
+![per capita income](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/per_capita_income.png)
 
-![hardship index](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/hardship.png)
+![hardship index](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/hardship_index.png)
 
 # Collaborators
 - Grace Hwang
