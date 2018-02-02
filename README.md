@@ -13,9 +13,12 @@ With the map, you can visually analyze the socioeconomic indicators across diffe
 7. Harship Index
 
 # Launch this application in your R console
-![how to run](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/run.png)
+![how to run](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/how_to_run.png)
 
 # Screenshots of ACS_Hardship_Index app
+![per capita income](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/income.png)
+
+![hardship index](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/hardship.png)
 
 # Collaborators
 - Grace Hwang
