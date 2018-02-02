@@ -1,22 +1,39 @@
 
 ########################
-# Title : ACS_Import
-# Purpose : Updating Census Data - Selected socioeconomic indicators in Chicago, 2008 - 2012
-#             Using ACS 2012-2016 5-Year Estimate data
-# Author: Patricia van Hissenhoven 
+# Date:     February 2, 2018
+# Purpose :  Using ACS 2012-2016 5-Year Estimate data
+#            to update 'Census Data - Selected socioeconomic indicators in Chicago, 2008 - 2012'
+#            a public data set made available on the Chicago Data Portal.
+#            Available here: https://data.cityofchicago.org/Health-Human-Services/Census-Data-Selected-socioeconomic-indicators-in-C/kn9c-c2s2/data
+#          
+# Author: Patricia van Hissenhoven and Cristian E. Nuno
 ########################
+
+# install necessary packages
+install.packages( pkgs = c( "acs", "dplyr", "sp", "readxl", "rgdal" ) )
 
 ## load necessary packages
 library( acs )
 library( dplyr )
 library( sp )
+library( readxl )
 library( rgdal )
-library( reshape )
-library( reshape2)
 
 ## load necessary data
 
-# transform URL character vector into spatial dataframe
+# my personal acs api key
+my.key <- "6b2a3bf0f9ec6f097062213125bc40cad0351578"
+
+
+# Table Shells for ACS 2012-2016 5-Year Estimate Data
+# Note: used to ensure correct variables are being selected
+download.file( url = "https://www2.census.gov/programs-surveys/acs/summary_file/2016/documentation/user_tools/ACS2016_Table_Shells.xlsx" 
+                , destfile = "ACS_2016_Table_Shells.xlsx" )
+acs.2016.table.shells <- read_xlsx( path = paste0( getwd() , "/ACS_2016_Table_Shells.xlsx" )
+                                    , na = c( "", "NA", "na", "N/A", "n/a", "missing" ) )
+
+
+# Create chicago community area spatial polygon data frame
 comarea606 <- readOGR( dsn = "https://data.cityofchicago.org/api/geospatial/cauq-8yn6?method=export&format=GeoJSON"
                        , layer = "OGRGeoJSON"
                        , stringsAsFactors = FALSE
@@ -25,28 +42,11 @@ comarea606 <- readOGR( dsn = "https://data.cityofchicago.org/api/geospatial/cauq
 
 
 
-#2010 Census Tracts - Source: https://www.cityofchicago.org/city/en/depts/doit/dataset/boundaries_-_censustracts.html
+# Create chicago census tract spatial polygon data frame
 chicago.census.tracts <- readOGR( dsn = "https://data.cityofchicago.org/api/geospatial/5jrd-6zik?method=export&format=GeoJSON"
                                   , layer = "OGRGeoJSON"
                                   , stringsAsFactors = FALSE
 )
-
-# What's inside the data slot?
-str( object = slot( object = chicago.census.tracts, name = "data" ) )
-
-# 'data.frame':	801 obs. of  9 variables:
-# $ statefp10 : chr  "17" "17" "17" "17" ...
-# $ name10    : chr  "8424" "8403" "8411" "8412" ...
-# $ commarea_n: chr  "44" "59" "34" "31" ...
-# $ namelsad10: chr  "Census Tract 8424" "Census Tract 8403" "Census Tract 8411" "Census Tract 8412" ...
-# $ commarea  : chr  "44" "59" "34" "31" ...
-# $ geoid10   : chr  "17031842400" "17031840300" "17031841100" "17031841200" ...
-# $ notes     : chr  "" "" "" "" ...
-# $ tractce10 : chr  "842400" "840300" "841100" "841200" ...
-# $ countyfp10: chr  "031" "031" "031" "031" ...
-
-# Excellent. They've given us a crosswalk between fips codes (statefp10+name10+tractce10)
-# and commarea!
 
 # NOTE: There a few judgements being made regarding which census tracts belong in which community areas
 View( x = slot( object = chicago.census.tracts, name = "data")[ which(
@@ -106,10 +106,6 @@ master.census.tract.community.area.crosswalk.df <-
              , by = c( "commarea_n" = "area_numbe" ) 
   )
 
-
-# my personal acs api key
-my.key <- "6b2a3bf0f9ec6f097062213125bc40cad0351578"
-
 # Identify census tracts within Cook County
 cook.county.census.tracts <- geo.make(state = "IL"
                                       , county = "Cook"
@@ -125,7 +121,9 @@ cook.county.census.tracts <- geo.make(state = "IL"
 #    that appear in the master.census.tract.community.area.crosswalk.df
 #   
 
-# population by age group by gender
+# Stub:         SEX BY AGE
+# Universe:     Total Population
+# Table ID:     B01001
 population.df <- acs.fetch( endyear = 2016
                             , span = 5
                             , geography = cook.county.census.tracts
@@ -140,13 +138,18 @@ population.df <- acs.fetch( endyear = 2016
                             )
                             , key = my.key 
 )
+
+# filter the acs object
+# to only include the two
+# data frames of interest
 population.df <- cbind.data.frame(
   slot( object = population.df, name = "geography" )
   , slot( object = population.df, name = "estimate" )
 )
 
-# this one takes about ~1 minute
-# educational attainment
+# Stub:         SEX BY EDUCATIONAL ATTAINMENT FOR THE POPULATION 25 YEARS AND OVER
+# Universe:     Population 25 years and over
+# Table ID:     B15002
 education.df <- acs.fetch( endyear = 2016
                            , span = 5
                            , geography = cook.county.census.tracts
@@ -161,12 +164,18 @@ education.df <- acs.fetch( endyear = 2016
                            )
                            , key = my.key 
 )
+
+# filter the acs object
+# to only include the two
+# data frames of interest
 education.df <- cbind.data.frame(
   slot( object = education.df, name = "geography" )
   , slot( object = education.df, name = "estimate" )
 )
 
-# poverty status
+# Stub:     POVERTY STATUS IN THE PAST 12 MONTHS BY HOUSEHOLD TYPE BY AGE OF HOUSEHOLDER
+# Universe: Households
+# Table ID: B17017
 poverty.df <- acs.fetch( endyear = 2016
                          , span = 5
                          , geography = cook.county.census.tracts
@@ -182,25 +191,37 @@ poverty.df <- acs.fetch( endyear = 2016
                          )
                          , key = my.key 
 )
+
+# filter the acs object
+# to only include the two
+# data frames of interest
 poverty.df <- cbind.data.frame(
   slot( object = poverty.df, name = "geography" )
   , slot( object = poverty.df, name = "estimate" )
 )
 
-# per capita income
-# in 2016-inflation adjusted dollars
-pci.df <- acs.fetch( endyear = 2016
-                     , span = 5
-                     , geography = cook.county.census.tracts
-                     , variable = "B19301_001"
-                     , key = my.key 
-)
-pci.df <- cbind.data.frame(
-  slot( object = pci.df, name = "geography" )
-  , slot( object = pci.df, name = "estimate" )
+# Stub:     AGGREGATE INCOME IN THE PAST 12 MONTHS (IN 2016 INFLATION-ADJUSTED DOLLARS)
+# Universe: Population 15 years and over
+# Table ID: B19313
+agg.pci.df <- acs.fetch( endyear = 2016
+                         , span = 5
+                         , geography = cook.county.census.tracts
+                         , variable = "B19313_001"
+                         , key = my.key
+                         )
+
+# filter the acs object
+# to only include the two
+# data frames of interest
+agg.pci.df <- cbind.data.frame(
+  slot( object = agg.pci.df, name = "geography" )
+  , slot( object = agg.pci.df, name = "estimate" )
 )
 
-# employment status for folks aged 16+ by sex by age
+
+# Stub:     SEX BY AGE BY EMPLOYMENT STATUS FOR THE POPULATION 16 YEARS AND OVER
+# Universe: Population 16 years and over
+# Table ID: B23001
 employment.df <- acs.fetch( endyear = 2016
                             , span = 5
                             , geography = cook.county.census.tracts
@@ -220,12 +241,18 @@ employment.df <- acs.fetch( endyear = 2016
                             )
                             , key = my.key
 )
+
+# filter the acs object
+# to only include the two
+# data frames of interest
 employment.df <- cbind.data.frame(
   slot( object = employment.df, name = "geography" )
   , slot( object = employment.df, name = "estimate" )
 )
 
-# tenure by occupants per room
+# Stub:     TENURE BY OCCUPANTS PER ROOM
+# Universe: Total
+# Table ID: B25014
 occupants.per.room.df <- acs.fetch( endyear = 2016
                                     , span = 5
                                     , geography = cook.county.census.tracts
@@ -241,10 +268,15 @@ occupants.per.room.df <- acs.fetch( endyear = 2016
                                     )
                                     , key = my.key
 )
+
+# filter the acs object
+# to only include the two
+# data frames of interest
 occupants.df <- cbind.data.frame(
   slot( object = occupants.per.room.df , name = "geography" )
   , slot( object = occupants.per.room.df , name = "estimate" )
 )
+
 
 ## filter data to match the socioeconomic descriptors
 
@@ -252,321 +284,175 @@ occupants.df <- cbind.data.frame(
 # Description:    Percent of the population under 18 or over 64 years of age 
 #                 (i.e., dependency)
 
-
-
-
-# Name:           Percent Aged 25+ Without High School Diploma
-# Description:    Percent of persons aged 25 years or older without a high school diploma
-
-# Name:           Percent Households Below Poverty
-# Description:    Percent of households living below the federal poverty level
-
-# Name:           Per Capita Income
-# Description:    A community area’s per capita income was estimated by dividing 
-#                 the aggregate income of the census tracts within the community area 
-#                 (from table B19313) by the [aggregate] number of residents.
-
-
-# Name:           Percent Aged 16+ Unemployed
-# Description:    Percent of persons aged16 years or older in the labor force that are unemployed
-
-
-# Name:           Percent of Housing Crowded
-# Description:    Percent of occupied housing units with more than one person per room 
-#                 (i.e., crowded housing)
-
-
-# Name:           Hardship Index
-# Description:    The hardship index is a score that incorporates each of the six selected socioeconomic indicators according to the method described in An Update on Urban Hardship 
-#                 (see footnote 2 on page 53 of http://www.rockinst.org/pdf/cities_and_neighborhoods/2004-08-an_update_on_urban_hardship.pdf). 
-#                 Scores on the index can range from 1 to 100, with a higher index number representing a greater level of hardship. 
-#                 The scores are standardized according to the data for the 77 community areas, 
-#                 and therefore cannot be compared to scores generated for other jurisdictions.
-
-## aggregation - not complete #
-# Please use dplyr for aggregation
-# and see here for more info: http://www.datacarpentry.org/R-genomics/04-dplyr.html#split-apply-combine_data_analysis_and_the_summarize()_function
-
-## Create a data frame that contains 78 rows and 9 columns
-## 77 rows for each community area, plus 1 for the entire City
-## 2 columns for the community area number + name
-## 6 columns for each socioeconomic indicator
-## 1 column for the Hardship Index (excluding a value for the entire City )
-## See here for an example of the schema: https://data.cityofchicago.org/Health-Human-Services/Census-Data-Selected-socioeconomic-indicators-in-C/kn9c-c2s2/data
-
-## Export the results into the /Data folder as both an RDS and CSV
-
-
-
-
-
-###############
-# I will now filter data to describe socio-economic descriptors
-###############
-################
-# Population for Dependency
-################
-
-# We need to figure out what population is younger than 18 or older than 64.
-pop.vars <- c(  "NAME"
-                , "state"
-                , "county"
-                , "tract"
-                , "B01001_003" # Males under 5
-                , "B01001_004" # Males 5-9
-                , "B01001_005" # Males 10-14
-                , "B01001_006" # Males 15-17
-                , "B01001_027" # Females under 5
-                , "B01001_028" # Females 5-9 
-                , "B01001_029" # Females 10-14
-                , "B01001_030" # Females 15-17
-                , "B01001_020" # Males 65-66
-                , "B01001_021" # Males 67-69
-                , "B01001_022" # Males 70-74
-                , "B01001_023" # Males 75-79
-                , "B01001_024" # Males 80-84
-                , "B01001_025" # Males 85 and older 
-                , "B01001_044" # Females 65-66
-                , "B01001_045" # Females 67-69
-                , "B01001_046" # Females 70-74
-                , "B01001_047" # Females 75-79
-                , "B01001_048" # Females 80-84
-                , "B01001_049" # Females 85 and older 
-                # We also need to add values for the entire population to obtain percentages
-                , "B01001_001" # Total population              
-                
-)
-
-
-# Select all of the values for the census tracts that correspond to the city of Chicago
+# Left join the Chicago Census Tract data
+# onto only the Cook County census tracts
+# that lay within the city of Chicago
 population.chicago.only.df <- left_join( x = master.census.tract.community.area.crosswalk.df
                                          , y = population.df
                                          , by = c("tractce10" = "tract")
 )
 
- dependency.df <- 
+# aggregate census tract data
+# to the community area level
+dependency.df <- 
   population.chicago.only.df %>%
   group_by( community )%>%
-  summarize(total.population = sum(B01001_001)
-            , dependency = sum( B01001_003 , B01001_004 , B01001_005 , B01001_006
-                                , B01001_027 , B01001_028 , B01001_029 , B01001_030
-                                , B01001_020 , B01001_021 , B01001_022 , B01001_023
-                                , B01001_024 , B01001_025 , B01001_044 , B01001_046
-                                , B01001_047 , B01001_048 , B01001_049 ) 
-            , dependency.ratio = dependency / total.population *100 ) 
-chi.dependency <- c( "CHICAGO" 
-                     , sum(dependency.df$total.population , na.rm = TRUE) 
-                     ,  sum(dependency.df$dependency , na.rm = TRUE)
-                     , sum( dependency.df$dependency , na.rm = TRUE) / sum( dependency.df$total.population , na.rm = TRUE) *100
-                     )
+  summarize( total.population                      = sum( B01001_001 )
+            , population.aged.under18.over64       = sum( B01001_003 , B01001_004 , B01001_005 , B01001_006
+                                                          , B01001_027 , B01001_028 , B01001_029 , B01001_030
+                                                          , B01001_020 , B01001_021 , B01001_022 , B01001_023
+                                                          , B01001_024 , B01001_025 , B01001_044 , B01001_046
+                                                          , B01001_047 , B01001_048 , B01001_049 ) 
+            , population.aged.under18.over64.ratio = population.aged.under18.over64 / total.population * 100 ) 
 
-dependency.df <- rbind( dependency.df , chi.dependency)
-dependency.vars <- c( "community", "dependency.ratio")
-dependency.df <- dependency.df[,dependency.vars ]  
+# aggregate community area data
+# to find statistic for the entire city
+dependency.df <-
+  rbind.data.frame( 
+    dependency.df
+    , data.frame( community = "CHICAGO"
+                  , total.population                     = sum( dependency.df$total.population )
+                  , population.aged.under18.over64       = sum( dependency.df$population.aged.under18.over64 )
+                  , population.aged.under18.over64.ratio = sum( dependency.df$population.aged.under18.over64 ) / sum( dependency.df$total.population ) * 100 
+    )
+    , stringsAsFactors = FALSE
+  )
 
 
-################
-# Educational attainment
-################    
-# We need to select all of the people who do not have a high school diploma
-edu.vars <- c("NAME"
-              , "state"
-              , "county"
-              , "tract"
-              , "B15002_003" # Males no schooling completed
-              , "B15002_004" # Males nursery to 4th grade
-              , "B15002_005" # Males 5th and 6th grade
-              , "B15002_006" # Males 7th and 8th grade
-              , "B15002_007" # Males 9th grade
-              , "B15002_008" # Males 10th grade
-              , "B15002_009" # Males 11th grade
-              , "B15002_010" # Males 12th grade (no diploma)
-              , "B15002_020" # Females no schooling completed
-              , "B15002_021" # Females nursery to 4th grade
-              , "B15002_022" # Females 5th and 6th grade
-              , "B15002_023" # Females 7th and 8th grade
-              , "B15002_024" # Females 9th grade
-              , "B15002_025" # Females 10th grade
-              , "B15002_026" # Females 11th grade
-              , "B15002_027" # Females 12th grade (no diploma)
-              # We also need to add values for the entire population to obtain percentages
-              , "B15002_001" # Total population 
-)
-## NOTE: there seem to be another group of tables that have 
-# the same data summarized in less tables: 15002_001-017
-# C15002_03 Males less than 9th grade
-# C15002_04 Males 9th to 12th grade, no diploma
-# C15002_11 Females less than 9th grade 
-# C15002_12 Females 9th to 12th grade, no diploma  
-# I then remove all of the tables that are not relevant
-education.df <- education.df[,edu.vars]
+# for the Per Capita Income calculation,
+# store the total population for each cca
+cca.total.population <- dependency.df[ c("community", "total.population" ) ]
 
-# Select all of the values for the census tracts that correspond to the city of Chicago
+# Name:           Percent Aged 25+ Without High School Diploma
+# Description:    Percent of persons aged 25 years or older without a high school diploma
+
+# Left join the Chicago Census Tract data
+# onto only the Cook County census tracts
+# that lay within the city of Chicago
 education.chicago.only.df <- left_join( x = master.census.tract.community.area.crosswalk.df
                                         , y = education.df
                                         , by = c("tractce10" = "tract")
 )
 
+# aggregate census tract data
+# to the community area level
+persons.aged25plus.without.hs.diploma <-
+  education.chicago.only.df %>%
+  group_by( community ) %>%
+  summarise( total.population                                 = sum( B15002_001 )
+             , population.aged25plus.without.hs.diploma       = sum( B15002_003 , B15002_004 , B15002_005 , B15002_006
+                                                                   , B15002_007 , B15002_008 , B15002_009 , B15002_010
+                                                                   , B15002_020 , B15002_021 , B15002_022 , B15002_023
+                                                                   , B15002_024 , B15002_025 , B15002_026 , B15002_027 ) 
+             , population.aged25plus.without.hs.diploma.ratio = population.aged25plus.without.hs.diploma / total.population * 100 )
 
-without.diploma.df <- 
-  education.chicago.only.df  %>%
-  group_by( community )%>%
-  summarize(total.population = sum(B15002_001)
-            , education = sum(B15002_003 , B15002_004 , B15002_005 , B15002_006
-                                , B15002_007 , B15002_008 , B15002_009 , B15002_010
-                                , B15002_020 , B15002_021 , B15002_022 , B15002_023
-                                , B15002_024 , B15002_025 , B15002_026 , B15002_027
-                                 
-                               ) 
-            , education.ratio = education / total.population *100 )
-chi.education <- c("CHICAGO"
-                   , sum( without.diploma.df$total.population , na.rm = TRUE)
-                   , sum( without.diploma.df$education , na.rm = TRUE )
-                   , sum( without.diploma.df$education , na.rm = TRUE )/sum(without.diploma.df$total.population , na.rm = TRUE)*100 
-                   )
-without.diploma.df <- rbind( without.diploma.df , chi.education)
-without.diploma.vars <- c( "community", "education.ratio")
-without.diploma.df <- without.diploma.df[,without.diploma.vars ]  
-
-
-################
-# Poverty Status
-################
-# We only need the households below the poverty level and the total. This appears in tables B17017_002 and B17017_001 respectively
-pov.vars <- c("NAME"
-              , "state"
-              , "county"
-              , "tract"
-              , "B17017_002" # Households with income in the past 12 months below poverty level
-              # We also need to add values for the entire population to obtain percentages
-              , "B17017_001" # Total households
-)
-# I then remove all of the tables that are not relevant
-poverty.df <- poverty.df[,pov.vars]
+# aggregate community area data
+# to find statistic for the entire city
+persons.aged25plus.without.hs.diploma <-
+  rbind.data.frame( 
+    persons.aged25plus.without.hs.diploma
+    , data.frame( community = "CHICAGO"
+                  , total.population                               = sum( persons.aged25plus.without.hs.diploma$total.population )
+                  , population.aged25plus.without.hs.diploma       = sum( persons.aged25plus.without.hs.diploma$population.aged25plus.without.hs.diploma )
+                  , population.aged25plus.without.hs.diploma.ratio = sum( persons.aged25plus.without.hs.diploma$population.aged25plus.without.hs.diploma ) / sum( persons.aged25plus.without.hs.diploma$total.population ) * 100 
+    )
+    , stringsAsFactors = FALSE
+  )
 
 
-# Select all of the values for the census tracts that correspond to the city of Chicago
+# Name:           Percent Households Below Poverty
+# Description:    Percent of households living below the federal poverty level
+
+# Left join the Chicago Census Tract data
+# onto only the Cook County census tracts
+# that lay within the city of Chicago
 poverty.chicago.only.df <- left_join( x = master.census.tract.community.area.crosswalk.df
                                       , y = poverty.df
                                       , by = c("tractce10" = "tract")
 )
 
-# Aggregate by community area
-households.below.poverty <- 
+# aggregate census tract data
+# to the community area level
+households.living.below.fpl <-
   poverty.chicago.only.df %>%
-  group_by( community ) %>% 
-  summarize( total.households = sum( B17017_001)
-            , below.poverty = sum( B17017_002)
-            , poverty.ratio = below.poverty / total.households *100
-            )
-chi.poverty <- c("CHICAGO"
-                 , sum( households.below.poverty$total.households , na.rm = TRUE )
-                 , sum(households.below.poverty$below.poverty , na.rm = TRUE )
-                 , sum(households.below.poverty$below.poverty , na.rm = TRUE ) / sum( households.below.poverty$total.households , na.rm = TRUE)*100
-                 )
-households.below.poverty <- rbind( households.below.poverty , chi.poverty )
-below.poverty.vars <- c( "community", "poverty.ratio")
-households.below.poverty <- households.below.poverty[,below.poverty.vars ]  
-
-################
-# Per capita Income
-################    
-# Per capita income df. does not need to be modified because it includes all of the data
-# necessary to calculate the hardship index. 
-# I will just change the name of the column to make it easier to bind later in the final df. 
-colnames(pci.df)[5] <- "income"
-
-# Select all of the values for the census tracts that correspond to the city of Chicago
-pci.chicago.only.df <- left_join( x = master.census.tract.community.area.crosswalk.df
-                                  , y = pci.df
-                                  , by = c("tractce10" = "tract")
-)
-##### NOTE THAT THERE ARE THREE CENSUS TRACTS (980100,980000 and 381700) THAT REGISTER NEGATIVE PER CAPITA INCOMES.
-# I filtered them out
-
-pci.chicago.only.df <- filter(pci.chicago.only.df , pci.chicago.only.df$income > 0)
-
-# Aggregate by community area
-per.capita.income <-
-  pci.chicago.only.df %>%
   group_by( community ) %>%
-  summarize( mean.pci = mean(income))
+  summarise( total.population                    = sum( B17017_001 )
+             , population.living.below.fpl       = sum( B17017_002 )
+             , population.living.below.fpl.ratio = population.living.below.fpl / total.population * 100 )
 
-chi.income <- c( "CHICAGO" 
-                 , mean(per.capita.income$mean.pci)
-                 )
-per.capita.income <- rbind( per.capita.income , chi.income)
+# aggregate community area data
+# to find statistic for the entire city
+households.living.below.fpl <-
+  rbind.data.frame( 
+    households.living.below.fpl
+    , data.frame( community = "CHICAGO"
+                  , total.population                  = sum( households.living.below.fpl$total.population )
+                  , population.living.below.fpl       = sum( households.living.below.fpl$population.living.below.fpl )
+                  , population.living.below.fpl.ratio = sum( households.living.below.fpl$population.living.below.fpl ) / sum( households.living.below.fpl$total.population ) * 100 
+    )
+    , stringsAsFactors = FALSE
+  )
 
-################
-# Employment
-################    
-# We need to select all of the people who are unemployed (this excludes people in the Armed Forces according to https://www.bls.gov/cps/cps_htgm.htm)
-employ.vars <- c(  "NAME"
-                   , "state"
-                   , "county"
-                   , "tract"
-                   , "B23001_008" # Males 16-19 Unemployed
-                   , "B23001_015" # Males 20-21 Unemployed
-                   , "B23001_022" # Males 22-24 Unemployed
-                   , "B23001_029" # Males 25-29 Unemployed
-                   , "B23001_036" # Males 30-34 Unemployed
-                   , "B23001_043" # Males 35-44 Unemployed
-                   , "B23001_050" # Males 45-54 Unemployed
-                   , "B23001_057" # Males 55-59 Unemployed 
-                   , "B23001_064" # Males 60-61 Unemployed
-                   , "B23001_071" # Males 62-64 Unemployed
-                   , "B23001_076" # Males 65-69 Unemployed
-                   , "B23001_081" # Males 70-74 Unemployed
-                   , "B23001_086" # Males over 75 Unemployed
-                   , "B23001_094" # Females 16-19 Unemployed
-                   , "B23001_101" # Females 20-21 Unemployed
-                   , "B23001_108" # Females 22-24 Unemployed
-                   , "B23001_115" # Females 25-29 Unemployed
-                   , "B23001_122" # Females 30-34 Unemployed
-                   , "B23001_129" # Females 35-44 Unemployed
-                   , "B23001_136" # Females 45-54 Unemployed
-                   , "B23001_143" # Females 55-59 Unemployed 
-                   , "B23001_150" # Females 60-61 Unemployed
-                   , "B23001_157" # Females 62-64 Unemployed
-                   , "B23001_162" # Females 65-69 Unemployed
-                   , "B23001_167" # Females 70-74 Unemployed
-                   , "B23001_172" # Females over 75 Unemployed
-                   # According to the link above, our unemployment percentage is the number of unemployed
-                   # divided by the people in the labor force. This means that we need to identify the labor force. 
-                   , "B23001_004" # Males 16 to 19 in labor force
-                   , "B23001_011" # Males 20 to 21 in labor force
-                   , "B23001_018" # Males 22 to 24 in labor force
-                   , "B23001_025" # Males 25 to 29 in labor force
-                   , "B23001_032" # Males 30 to 34 in labor force
-                   , "B23001_039" # Males 35 to 44 in labor force
-                   , "B23001_046" # Males 45 to 54 in labor force
-                   , "B23001_053" # Males 55 to 59 in labor force
-                   , "B23001_060" # Males 60 to 61 in labor force
-                   , "B23001_067" # Males 62 to 64 in labor force
-                   , "B23001_074" # Males 65 to 69 in labor force
-                   , "B23001_079" # Males 70 to 75 in labor force
-                   , "B23001_084" # Males over 75 in labor force
-                   , "B23001_090" # Females 16 to 19 in labor force
-                   , "B23001_097" # Females 20 to 21 in labor force
-                   , "B23001_104" # Females 22 to 24 in labor force
-                   , "B23001_111" # Females 25 to 29 in labor force
-                   , "B23001_118" # Females 30 to 34 in labor force
-                   , "B23001_125" # Females 35 to 44 in labor force
-                   , "B23001_132" # Females 45 to 54 in labor force
-                   , "B23001_139" # Females 55 to 59 in labor force
-                   , "B23001_146" # Females 60 to 61 in labor force
-                   , "B23001_153" # Females 62 to 64 in labor force
-                   , "B23001_160" # Females 65 to 69 in labor force
-                   , "B23001_165" # Females 70 to 75 in labor force
-                   , "B23001_170" # Females over 75 in labor force
+
+# Name:           Per Capita Income
+# Description:    A community area’s per capita income was estimated by dividing 
+#                 the aggregate income of the census tracts within the community area 
+#                 (from table B19313) by the number of residents (from table B01001).
+
+# Left join the Chicago Census Tract data
+# onto only the Cook County census tracts
+# that lay within the city of Chicago
+agg.pci.chicago.only.df <- left_join( x = master.census.tract.community.area.crosswalk.df
+                                      , y = agg.pci.df
+                                      , by = c("tractce10" = "tract")
 )
-# NOTE: There is another group of data that could potentially serve to calculate unemployment
-# C23001_001-093. The age ranges are wider, making this list easier to manage. 
+# NOTE THAT THERE ARE THREE CENSUS TRACTS 
+# (980100, 980000, and 381700) 
+# THAT REGISTER THE SAME
+# NEGATIVE PER CAPITA INCOME VALUE, -666666666
+# Remove them.
+negative.pci.ct <- c( "980100", "980000", "381700" )
 
-# I then remove all of the tables that are not relevant
-employment.df <- employment.df[,employ.vars]
+agg.pci.chicago.only.df <- 
+  agg.pci.chicago.only.df[ which( !agg.pci.chicago.only.df$tractce10 %in% negative.pci.ct ) , ]
 
-# Select all of the values for the census tracts that correspond to the city of Chicago
+# aggregate census tract data
+# to the community area level
+estimated.pci <-
+  agg.pci.chicago.only.df %>%
+  group_by( community ) %>%
+  summarise( agg.pci = sum( B19313_001 ) )
+
+# add the total population to each cca
+estimated.pci <- left_join( x = estimated.pci
+                            , y = cca.total.population
+                            , by = "community"
+)
+
+# calculate the estimated pci per cca
+estimated.pci$estimated.pci <- 
+  estimated.pci$agg.pci / estimated.pci$total.population
+
+# aggregate community area data
+# to find statistic for the entire city
+estimated.pci <-
+  rbind.data.frame( 
+    estimated.pci
+    , data.frame( community           = "CHICAGO"
+                  , agg.pci           = sum( estimated.pci$agg.pci )
+                  , total.population  = sum( estimated.pci$total.population )
+                  , estimated.pci     = sum( estimated.pci$agg.pci ) / sum( estimated.pci$total.population ) 
+    )
+    , stringsAsFactors = FALSE
+  )
+
+
+# Name:           Percent Aged 16+ Unemployed
+# Description:    Percent of persons aged16 years or older in the labor force that are unemployed
+
+# Left join the Chicago Census Tract data
+# onto only the Cook County census tracts
+# that lay within the city of Chicago
 employment.chicago.only.df <- left_join( x = master.census.tract.community.area.crosswalk.df
                                          , y = employment.df
                                          , by = c("tractce10" = "tract")
@@ -576,60 +462,42 @@ employment.chicago.only.df <- left_join( x = master.census.tract.community.area.
 unemployed.over.16 <- 
   employment.chicago.only.df %>%
   group_by( community )%>%
-  summarize( unemployed = sum( B23001_008 ,  B23001_015 ,  B23001_022 ,  B23001_029 
-                              , B23001_036 ,  B23001_043 ,  B23001_050 ,  B23001_057   
-                              , B23001_064 ,  B23001_071 ,  B23001_076 ,  B23001_081  
-                              , B23001_086 ,  B23001_094 ,  B23001_101 ,  B23001_108  
-                              , B23001_115 ,  B23001_122 ,  B23001_129 ,  B23001_136  
-                              , B23001_143 ,  B23001_150 ,  B23001_157 ,  B23001_162  
-                              , B23001_167 ,  B23001_172 
-                               )
-            , labor.force = sum(  B23001_004  ,  B23001_011 ,  B23001_018  ,  B23001_025  
-                                , B23001_032  ,  B23001_039 ,  B23001_046  ,  B23001_053  
-                                , B23001_060  ,  B23001_067 ,  B23001_074  ,  B23001_079  
-                                , B23001_084  ,  B23001_090 ,  B23001_097  ,  B23001_104 
-                                , B23001_111  ,  B23001_118 ,  B23001_125  ,  B23001_132  
-                                , B23001_139  ,  B23001_146 ,  B23001_153  ,  B23001_160  
-                                ,  B23001_165 ,  B23001_170  
-                                )
-            , unemployment.ratio = unemployed / labor.force *100 
-            )
-            
-chi.unemployment <- c( "CHICAGO"
-                       , sum(unemployed.over.16$unemployed)
-                       , sum(unemployed.over.16$labor.force)
-                       , sum(unemployed.over.16$unemployed) / sum(unemployed.over.16$labor.force) *100
-                      )
-unemployed.over.16 <- rbind( unemployed.over.16 , chi.unemployment)
+  summarize( unemployed           = sum( B23001_008 ,  B23001_015 ,  B23001_022 ,  B23001_029 
+                                        , B23001_036 ,  B23001_043 ,  B23001_050 ,  B23001_057   
+                                        , B23001_064 ,  B23001_071 ,  B23001_076 ,  B23001_081  
+                                        , B23001_086 ,  B23001_094 ,  B23001_101 ,  B23001_108  
+                                        , B23001_115 ,  B23001_122 ,  B23001_129 ,  B23001_136  
+                                        , B23001_143 ,  B23001_150 ,  B23001_157 ,  B23001_162  
+                                        , B23001_167 ,  B23001_172 )
+             , labor.force        = sum(  B23001_004  ,  B23001_011 ,  B23001_018  ,  B23001_025  
+                                          , B23001_032  ,  B23001_039 ,  B23001_046  ,  B23001_053  
+                                          , B23001_060  ,  B23001_067 ,  B23001_074  ,  B23001_079  
+                                          , B23001_084  ,  B23001_090 ,  B23001_097  ,  B23001_104 
+                                          , B23001_111  ,  B23001_118 ,  B23001_125  ,  B23001_132  
+                                          , B23001_139  ,  B23001_146 ,  B23001_153  ,  B23001_160  
+                                          , B23001_165 ,  B23001_170 )
+             , unemployment.ratio = unemployed / labor.force * 100 )
 
-unemployed.vars <- c( "community", "unemployment.ratio")
-unemployed.over.16 <- unemployed.over.16[,unemployed.vars]
+# aggregate community area data
+# to find statistic for the entire city
+unemployed.over.16 <-
+  rbind.data.frame( 
+    unemployed.over.16
+    , data.frame( community             = "CHICAGO"
+                  , unemployed          = sum( unemployed.over.16$unemployed )
+                  , labor.force         = sum( unemployed.over.16$labor.force )
+                  , unemployment.ratio  = sum( unemployed.over.16$unemployed ) / sum( unemployed.over.16$labor.force ) * 100 
+    )
+    , stringsAsFactors = FALSE
+  )
 
+# Name:           Percent of Housing Crowded
+# Description:    Percent of occupied housing units with more than one person per room 
+#                 (i.e., crowded housing)
 
-################
-# Crowded Housing
-################  
-# We need the percentage of housing units with more than one occupant per room
-crowded.vars <- c(    "NAME"
-                      , "state"
-                      , "county"
-                      , "tract"
-                      , "B25014_005" # Owner occupied 1.01 to 1.50 occupants per room
-                      , "B25014_006" # Owner occupied 1.51 to 2.00 occupants per room
-                      , "B25014_007" # Owner occupied 2.01 or more occupants per room
-                      , "B25014_011" # Renter occupied 1.01 to 1.50 occupants per room
-                      , "B25014_012" # Renter occupied 1.51 to 2.00 occupants per room
-                      , "B25014_013" # Renter occupied 2.01 or more occupants per room
-                      # We also need to add values for the entire population to obtain percentages
-                      , "B25014_001" # Total households
-)
-# I then remove all of the tables that are not relevant
-occupants.df <- occupants.df[,crowded.vars]
-
-
-
-
-# Select all of the values for the census tracts that correspond to the city of Chicago
+# Left join the Chicago Census Tract data
+# onto only the Cook County census tracts
+# that lay within the city of Chicago
 crowded.housing.chicago.only.df <- left_join( x = master.census.tract.community.area.crosswalk.df
                                               , y = occupants.df
                                               , by = c("tractce10" = "tract")
@@ -639,82 +507,221 @@ crowded.housing.chicago.only.df <- left_join( x = master.census.tract.community.
 housing.crowded <- 
   crowded.housing.chicago.only.df %>%
   group_by( community ) %>%
-  summarize( total.households = sum( B25014_001)
-            , crowded.households = sum(  B25014_005   ,  B25014_006   ,  B25014_007  
-                                       ,  B25014_011  ,  B25014_012   ,  B25014_013 
-                                       )
-            , crowded.ratio = crowded.households / total.households * 100
-    
-    ) 
+  summarize( total.households     = sum( B25014_001 )
+             , crowded.households = sum(  B25014_005   ,  B25014_006   ,  B25014_007  
+                                          ,  B25014_011  ,  B25014_012   ,  B25014_013 )
+             , crowded.ratio      = crowded.households / total.households * 100 ) 
 
-chi.crowded <- c( "CHICAGO"
-                  , sum( housing.crowded$total.households , na.rm = TRUE )
-                  , sum( housing.crowded$crowded.households , na.rm = TRUE )
-                  , sum( housing.crowded$crowded.households , na.rm = TRUE ) / sum( housing.crowded$total.households , na.rm = TRUE ) *100
-                 )
+# aggregate community area data
+# to find statistic for the entire city
+housing.crowded <-
+  rbind.data.frame( 
+    housing.crowded
+    , data.frame( community             = "CHICAGO"
+                  , total.households    = sum( housing.crowded$total.households )
+                  , crowded.households  = sum( housing.crowded$crowded.households )
+                  , crowded.ratio       = sum( housing.crowded$crowded.households ) / sum( housing.crowded$total.households ) * 100 
+    )
+    , stringsAsFactors = FALSE
+  )
 
-housing.crowded <- rbind( housing.crowded , chi.crowded)
+# Name:           Hardship Index
+# Description:    The hardship index is a score that incorporates each of the six selected socioeconomic indicators according to the method described in An Update on Urban Hardship 
+#                 (see footnote 2 on page 53 of http://www.rockinst.org/pdf/cities_and_neighborhoods/2004-08-an_update_on_urban_hardship.pdf). 
+#                 Scores on the index can range from 1 to 100, with a higher index number representing a greater level of hardship. 
+#                 The scores are standardized according to the data for the 77 community areas, 
+#                 and therefore cannot be compared to scores generated for other jurisdictions.
+# Recreation:     Please see the UIC Chicago Community Area report on the Hardship Index
+#                 to learn more about how this function was recreated.
+#                 https://greatcities.uic.edu/wp-content/uploads/2016/07/GCI-Hardship-Index-Fact-SheetV2.pdf
 
-housing.crowded.vars <- c( "community", "crowded.ratio")
-housing.crowded <- housing.crowded[,housing.crowded.vars]
+## Prior to calculating the Hardship Index
+## I must create a data frame that contains 78 rows and 9 columns
+# Row order: One for each community area (77) + one for the entire City
+# Column order:
+# 1. CCA number
+# 2. CCA name
+# 3. % housing crowded
+# 4. % households living below the federal poverty level
+# 5. % aged 16+ who are unemployed
+# 6. % aged 25+ without a high school diploma
+# 7. % aged under 18 or over 64
+# 8. Per capita income
+# 9. Hardship Index
+## See here for an example of the schema: https://data.cityofchicago.org/Health-Human-Services/Census-Data-Selected-socioeconomic-indicators-in-C/kn9c-c2s2/data
 
-housing.crowded <- right_join( x = community.area.number.name.crosswalk.df 
-                              , y = housing.crowded 
-                              , by = c( "community" = "community"))
+# Join area number + area name onto 
+# % housing crowded
+acs.2016.cca.se.indicators <- 
+  right_join( x = comarea606@data[ c( "area_numbe", "community" ) ]
+             , y = housing.crowded[ c( "community", "crowded.ratio" ) ]
+             , by = "community"
+  )
 
-####################    
-# CREATE THE NEW TABLE
-####################
+# Join area name onto
+# % households living below the federal poverty level
+acs.2016.cca.se.indicators <-
+  left_join( x = acs.2016.cca.se.indicators
+             , y = households.living.below.fpl[ c( "community", "population.living.below.fpl.ratio" ) ] 
+             , by = "community"
+  )
 
+# Join area name onto
+# % aged 16+ who are unemployed
+acs.2016.cca.se.indicators <-
+  left_join( x = acs.2016.cca.se.indicators
+             , y = unemployed.over.16[ c( "community", "unemployment.ratio" ) ] 
+             , by = "community"
+  )
 
-# Create a dataframe with all of the percentages from the individual indicators 
+# Join area name onto
+# % aged 25+ without a high school diploma
+acs.2016.cca.se.indicators <-
+  left_join( x = acs.2016.cca.se.indicators
+             , y = persons.aged25plus.without.hs.diploma[ c( "community", "population.aged25plus.without.hs.diploma.ratio" ) ] 
+             , by = "community"
+  )
 
-hardship.index <- left_join( x = housing.crowded, y = households.below.poverty , by = c( "community" = "community") )
-hardship.index <- left_join( x =  hardship.index , y = unemployed.over.16 , by = c("community" = "community" ) )
-hardship.index <- left_join( x = hardship.index , y = without.diploma.df , by = c("community" = "community" ) ) 
-hardship.index <- left_join( x = hardship.index , y = dependency.df , by = c("community" = "community" ) )
-hardship.index <- left_join( x = hardship.index , y = per.capita.income , by = c("community" = "community" ) )
+# Join area name onto
+# % aged under 18 or over 64
+acs.2016.cca.se.indicators <-
+  left_join( x = acs.2016.cca.se.indicators
+             , y = dependency.df[ c( "community", "population.aged.under18.over64.ratio" ) ] 
+             , by = "community"
+  )
+
+# Join area name onto
+# Per capita income
+acs.2016.cca.se.indicators <-
+  left_join( x = acs.2016.cca.se.indicators
+             , y = estimated.pci[ c( "community", "estimated.pci" ) ] 
+             , by = "community"
+  )
+
+# check dim
+dim( acs.2016.cca.se.indicators ) # [1] 78  8
+
 # Rename the columns (make it comprehensible)  
-colnames(hardship.index) <- c( "COMMUNITY.AREA.NAME", "Community.Area.Number"
-                               , "PERCENT.OF.HOUSING.CROWDED" , "PERCENT.HOUSEHOLDS.BELOW.POVERTY" 
-                               , "PERCENT.AGED.16..UNEMPLOYED" , "PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA"
-                               , "PERCENT.AGED.UNDER.18.OR.OVER.64" ,  "PER.CAPITA.INCOME" 
-                              )
-# Convert data to numeric 
-hardship.index$PERCENT.OF.HOUSING.CROWDED <- as.numeric( hardship.index$PERCENT.OF.HOUSING.CROWDED) 
-hardship.index$PERCENT.HOUSEHOLDS.BELOW.POVERTY  <- as.numeric(hardship.index$PERCENT.HOUSEHOLDS.BELOW.POVERTY)
-hardship.index$PERCENT.AGED.16..UNEMPLOYED <- as.numeric(hardship.index$PERCENT.AGED.16..UNEMPLOYED)
-hardship.index$PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA <- as.numeric(hardship.index$PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA )
-hardship.index$PERCENT.AGED.UNDER.18.OR.OVER.64 <- as.numeric(hardship.index$PERCENT.AGED.UNDER.18.OR.OVER.64)
-hardship.index$PER.CAPITA.INCOME <- as.numeric(hardship.index$PER.CAPITA.INCOME)
-  
-# Calculate the hardship index for the census tracts
+colnames( acs.2016.cca.se.indicators ) <- 
+  c( "COMMUNITY.AREA.NUMBER" , "COMMUNITY.AREA.NAME"
+     , "PERCENT.OF.HOUSING.CROWDED" , "PERCENT.HOUSEHOLDS.BELOW.POVERTY" 
+     , "PERCENT.AGED.16..UNEMPLOYED" , "PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA"
+     , "PERCENT.AGED.UNDER.18.OR.OVER.64" ,  "PER.CAPITA.INCOME" 
+  )
+
+# Recast the cca number as a numeric vector
+acs.2016.cca.se.indicators$COMMUNITY.AREA.NUMBER <- 
+  as.numeric( x = acs.2016.cca.se.indicators$COMMUNITY.AREA.NUMBER )
+
+# Create a condition that avoids
+# the 78th row
+# because the entire city does not go into the hardship index calculations
+avoid.using.the.entire.city <- which( !is.na( acs.2016.cca.se.indicators$COMMUNITY.AREA.NUMBER ) )
+
+# create a condition that avoids
+# community area number and 
+# community area name
+se.indicator.columns <- 
+  colnames( acs.2016.cca.se.indicators )[
+    which( !colnames( acs.2016.cca.se.indicators ) %in%
+             c( "COMMUNITY.AREA.NUMBER", "COMMUNITY.AREA.NAME" )
+    )
+    ]
+
+# create a condition that avoids
+# community area number,
+# community area name, and
+# per capita income
+non.pci.se.indicator.columns <- 
+  colnames( acs.2016.cca.se.indicators )[
+    which( !colnames( acs.2016.cca.se.indicators ) %in%
+             c( "COMMUNITY.AREA.NUMBER", "COMMUNITY.AREA.NAME", "PER.CAPITA.INCOME" )
+    )
+    ]
+
+# create a condition that
+# only retains per capita income
+pci.se.indicator.column <- "PER.CAPITA.INCOME"
+
 # Identify the min and max values 
-min.dependency <- min( hardship.index$PERCENT.AGED.UNDER.18.OR.OVER.64 , na.rm = TRUE )
-max.dependency <- max( hardship.index$PERCENT.AGED.UNDER.18.OR.OVER.64 , na.rm = TRUE )
-min.poverty <- min( hardship.index$PERCENT.HOUSEHOLDS.BELOW.POVERTY , na.rm = TRUE )
-max.poverty <- max( hardship.index$PERCENT.HOUSEHOLDS.BELOW.POVERTY , na.rm = TRUE )
-min.income <- min( hardship.index$PER.CAPITA.INCOME , na.rm = TRUE )
-max.income <- max( hardship.index$PER.CAPITA.INCOME , na.rm = TRUE )
-min.employment <- min( hardship.index$PERCENT.AGED.16..UNEMPLOYED , na.rm = TRUE )
-max.employment <- max( hardship.index$PERCENT.AGED.16..UNEMPLOYED , na.rm = TRUE )
-min.housing <- min( hardship.index$PERCENT.OF.HOUSING.CROWDED , na.rm = TRUE )
-max.housing <- max( hardship.index$PERCENT.OF.HOUSING.CROWDED , na.rm = TRUE )
-min.education <- min( hardship.index$PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA , na.rm = TRUE )
-max.education <- max( hardship.index$PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA , na.rm = TRUE )
+# for each socioeconomic indicator
+# being sure to use the conditions
+# Note: this object is a list.
+#       The first element in each vector is the minimum value
+#       The second element in each vector is the maximum value
+list.of.min.max.se.indicator.values <-
+  lapply( X = acs.2016.cca.se.indicators[ se.indicator.columns ][ avoid.using.the.entire.city, ]
+          , FUN = function( i ) append( x = min( i ), values = max( i ) )
+  )
 
-# Standardize the values
-std.dependency  <- (( hardship.index$PERCENT.AGED.UNDER.18.OR.OVER.64 - min.dependency )/( max.dependency - min.dependency))*100
-std.poverty <- (( hardship.index$PERCENT.HOUSEHOLDS.BELOW.POVERTY - min.poverty )/( max.poverty - min.poverty ))*100
-std.employment <- (( hardship.index$PERCENT.AGED.16..UNEMPLOYED - min.employment )/( max.employment - min.employment ))*100
-std.housing <- (( hardship.index$PERCENT.OF.HOUSING.CROWDED - min.housing)/( max.housing - min.housing ))*100
-std.education <- (( hardship.index$PERCENT.AGED.25..WITHOUT.HIGH.SCHOOL.DIPLOMA - min.education)/( max.education - min.education ))*100
+# Create a condition that avoids
+# the Per Capita Income min and max values
+avoid.pci.values <- which( names( list.of.min.max.se.indicator.values ) != "PER.CAPITA.INCOME" )
 
-std.income <- ((  hardship.index$PER.CAPITA.INCOME - max.income )/(min.income - max.income ))*100
+# Standardize each
+# socioeconomic indicator value
+# EXCEPT Per Capita Income
+list.of.standardized.se.indicator.values <-
+  mapply( FUN = function( value, min.value, max.value )
+    ( value - min.value ) / ( max.value - min.value ) * 100
+    , acs.2016.cca.se.indicators[ non.pci.se.indicator.columns ][ avoid.using.the.entire.city, ]
+    , lapply( X = list.of.min.max.se.indicator.values[ avoid.pci.values ], FUN = "[[", FUN.VALUE = 1 )
+    , lapply( X = list.of.min.max.se.indicator.values[ avoid.pci.values ], FUN = "[[", FUN.VALUE = 2 )
+    , SIMPLIFY = FALSE
+    , USE.NAMES = TRUE
+  )
 
-# Then calculate the hardship index for the census tracts. 
+# To standardize Per Capita Income
+# I need to flip the values in such a way that the numerator and the denominator 
+# are both negative (to get a positive value for greater hardship). 
+# So I subtract the max income from the income 
+# to make sure the community area with the highest income has a standardized value of 0 
+# and the one with the smallest income has a standardized value of 100. 
+list.of.standardized.se.indicator.values[[ pci.se.indicator.column ]] <-
+  mapply( FUN = function( value, min.value, max.value )
+    ( value - max.value ) / ( min.value - max.value ) * 100
+    , acs.2016.cca.se.indicators[ pci.se.indicator.column ][ avoid.using.the.entire.city, ]
+    , lapply( X = list.of.min.max.se.indicator.values[ pci.se.indicator.column ], FUN = "[[", FUN.VALUE = 1 )
+    , lapply( X = list.of.min.max.se.indicator.values[ pci.se.indicator.column ], FUN = "[[", FUN.VALUE = 2 )
+    , SIMPLIFY = TRUE
+    , USE.NAMES = TRUE
+  )
 
-hardship.index$HARDSHIP.INDEX <- (std.dependency + std.education + std.employment + std.housing + std.income + std.poverty)/6
 
-saveRDS(hardship.index, "/Users/patricia/Desktop/r/ACS_Hardship_Index/hardship.rds")
+# Calculate the hardship index
+# for each community area
+list.of.hardship.indices <-
+  sapply( X = 1:nrow( acs.2016.cca.se.indicators[ avoid.using.the.entire.city, ] )
+          , FUN = function( i ) 
+            Reduce( f = sum
+                    , lapply( X = list.of.standardized.se.indicator.values
+                              , FUN = "[["
+                              , FUN.VALUE = i
+                    )
+            ) /
+            length( list.of.standardized.se.indicator.values )
+  )
 
+# add hardship index
+# back to the output data frame
+acs.2016.cca.se.indicators$HARDSHIP.INDEX <-
+  append( x = list.of.hardship.indices
+          , values = NA
+  )
+
+# Lastly, 
+# sort the data frame by community area number
+acs.2016.cca.se.indicators <-
+  acs.2016.cca.se.indicators[ order( acs.2016.cca.se.indicators$COMMUNITY.AREA.NUMBER ) , ]
+
+
+# Export data as both a CSV and an RDS file
+write.csv( x = acs.2016.cca.se.indicators
+           , row.names = FALSE
+           , file = paste0( getwd(), "/2018-02-02-ACS_2012to2016_CommunityArea_SE_Indicator_Estimates.csv" )
+)
+saveRDS( object = acs.2016.cca.se.indicators
+         , file = paste0( getwd(), "/2018-02-02-ACS_2012to2016_CommunityArea_SE_Indicator_Estimates.rds" )
+)
+
+# end of script #
