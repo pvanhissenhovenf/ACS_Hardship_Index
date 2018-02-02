@@ -29,9 +29,9 @@ shiny::runUrl( "https://github.com/gracehwang9584/ACS_Hardship_Index/archive/mas
 ```
 
 # Screenshots of ACS_Hardship_Index app
-![per capita income](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/per_capita_income.png)
+![per capita income](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/per_capita.png)
 
-![hardship index](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/hardship_index.png)
+![hardship index](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/hardshipindex.png)
 
 # Collaborators
 - Grace Hwang
