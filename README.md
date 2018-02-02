@@ -13,20 +13,7 @@ With the map, you can visually analyze the socioeconomic indicators across diffe
 7. Harship Index
 
 # Launch this application in your R console
-
-# Install necessary packages
-install.packages( c( "shiny", "htmltools", "sp", "devtools", "rgdal" ) )
-
-# install 'leaflet' package from source
-# for more info, click here: https://rstudio.github.io/leaflet/
-devtools::install_github( "rstudio/leaflet" )
-
-# Load necessary packages
-library( shiny )
-
-# Run shiny app from your Rstudio console
-shiny::runUrl( "https://github.com/gracehwang9584/ACS_Hardship_Index/archive/master.zip" )
-
+![how to run](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/how_to_run_app.png)
 
 # Screenshots of ACS_Hardship_Index app
 ![per capita income](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/per_capita_income.png)
