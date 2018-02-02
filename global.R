@@ -93,7 +93,9 @@ comarea$color_hardship <- as.character(
     , breaks = 5
     , labels = color.ramp
   )
-)
+) 
+
+
 
 # Make hover labels
 # Courtesy of https://github.com/USAspendingexplorer/USAspending-explorer/blob/master/Build%20App/leaflet_ny.r#L36
@@ -160,11 +162,15 @@ label_hardship <- lapply(
   )
   , HTML)
 
-# Make north arrow
-north_arrow <- makeIcon(
-  iconUrl = "http://www.clker.com/cliparts/0/o/K/m/i/y/north-arrow-orienteering.svg"
-  , iconWidth = 60
-  , iconHeight = 60
+# north arrow icon url
+northArrowIcon <- "<img src='http://ian.umces.edu/imagelibrary/albums/userpics/10002/normal_ian-symbol-north-arrow-2.png' style='width:40px;height:60px;'>"
+
+
+# make custom map title
+mapTitle <- paste0(
+  "<p style='color:#660066; font-size:20px;'>"
+  , "Census Data - Selected socioeconomic indicators in Chicago, 2008 - 2012"
+  , "</p>"
 )
 
 # Make map
@@ -182,18 +188,8 @@ census_map <-
   # set zoom level
   setView( lng = -87.707988
            , lat = 41.832249
-           , zoom = 11
-  ) %>%
+           , zoom = 11 ) %>%
   
-  # add north arrow
-  # note : assigning a specific lng and lat only works
-  #        because the zoom in/out function is disabled
-  #        for this particular map
-  #        if it's not disabled, use addControl instead
-  addMarkers( lng = -88.173643
-              , lat = 41.638735
-              , icon = north_arrow
-  ) %>%
   
   # add Crowded Housing polygons
   addPolygons( smoothFactor = 0.3
@@ -202,14 +198,13 @@ census_map <-
                , color = "white"
                , label = label_crowded
                , labelOptions = labelOptions( style = list( "font-weight" = "normal" )
-                                              ,textsize = "15px"
+                                              , textsize = "15px"
                )
                , highlightOptions = highlightOptions( color = "black"
                                                       , weight = 6
                                                       , bringToFront = TRUE
                )
-               , group = "Percent of Crowded Housing"
-  ) %>%
+               , group = "Percent of Crowded Housing" ) %>%
   
   # Add Poverty polygons
   addPolygons( smoothFactor = 0.3
@@ -218,14 +213,13 @@ census_map <-
                , color = "white"
                , label = label_poverty
                , labelOptions = labelOptions( style = list( "font-weight" = "normal" )
-                                              ,textsize = "15px"
+                                              , textsize = "15px"
                )
                , highlightOptions = highlightOptions( color = "black"
                                                       , weight = 6
                                                       , bringToFront = TRUE
                )
-               , group = "Percent of Households Below Poverty"
-  ) %>%
+               , group = "Percent of Households Below Poverty" ) %>%
   
   # Add Unemployed polygons
   addPolygons( smoothFactor = 0.3
@@ -234,14 +228,13 @@ census_map <-
                , color = "white"
                , label = label_unemployed
                , labelOptions = labelOptions( style = list( "font-weight" = "normal" )
-                                              ,textsize = "15px"
+                                              , textsize = "15px"
                )
                , highlightOptions = highlightOptions( color = "black"
                                                       , weight = 6
                                                       , bringToFront = TRUE
                )
-               , group = "Percent of Aged 16+ Unemployed"
-  ) %>%
+               , group = "Percent of Aged 16+ Unemployed" ) %>%
   
   # Add Diploma polygons
   addPolygons( smoothFactor = 0.3
@@ -250,14 +243,13 @@ census_map <-
                , color = "white"
                , label = label_diploma
                , labelOptions = labelOptions( style = list( "font-weight" = "normal" )
-                                              ,textsize = "15px"
+                                              , textsize = "15px"
                )
                , highlightOptions = highlightOptions( color = "black"
                                                       , weight = 6
                                                       , bringToFront = TRUE
                )
-               , group = "Percent of Aged 25+ Without High School Diploma"
-  ) %>%
+               , group = "Percent of Aged 25+ Without High School Diploma" ) %>%
   
   # Add Age polygons
   addPolygons( smoothFactor = 0.3
@@ -266,14 +258,13 @@ census_map <-
                , color = "white"
                , label = label_age
                , labelOptions = labelOptions( style = list( "font-weight" = "normal" )
-                                              ,textsize = "15px"
+                                              , textsize = "15px"
                )
                , highlightOptions = highlightOptions( color = "black"
                                                       , weight = 6
                                                       , bringToFront = TRUE
                )
-               , group = "Percent of Aged Under 18 or Over 64"
-  ) %>%
+               , group = "Percent of Aged Under 18 or Over 64" ) %>%
   
   # Add Income polygons
   addPolygons( smoothFactor = 0.3
@@ -282,14 +273,13 @@ census_map <-
                , color = "white"
                , label = label_income
                , labelOptions = labelOptions( style = list( "font-weight" = "normal" )
-                                              ,textsize = "15px"
+                                              , textsize = "15px"
                )
                , highlightOptions = highlightOptions( color = "black"
                                                       , weight = 6
                                                       , bringToFront = TRUE
                )
-               , group = "Per Capita Income"
-  ) %>%
+               , group = "Per Capita Income" ) %>%
   
   # Add Hardship polygons
   addPolygons( smoothFactor = 0.3
@@ -298,14 +288,13 @@ census_map <-
                , color = "white"
                , label = label_hardship
                , labelOptions = labelOptions( style = list( "font-weight" = "normal" )
-                                              ,textsize = "15px"
+                                              , textsize = "15px"
                )
                , highlightOptions = highlightOptions( color = "black"
                                                       , weight = 6
                                                       , bringToFront = TRUE
                )
-               , group = "Hardship Index"
-  ) %>%
+               , group = "Hardship Index" ) %>%
   
   # add Layers control
   addLayersControl( baseGroups = c( "Percent of Crowded Housing"
@@ -314,8 +303,6 @@ census_map <-
                                     , "Percent of Aged 25+ Without High School Diploma"
                                     , "Percent of Aged Under 18 or Over 64"
                                     , "Per Capita Income"
-                                    , "Hardship Index"
-  )
-  , position = "topright"
-  , options = layersControlOptions( collapsed = FALSE )
-  ) 
+                                    , "Hardship Index" )
+                    , position = "topright"
+                    , options = layersControlOptions( collapsed = FALSE ) ) 
