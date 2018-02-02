@@ -10,10 +10,23 @@ With the map, you can visually analyze the socioeconomic indicators across diffe
 4. Percent of Aged 25+ without High School Diploma
 5. Percent of Aged Under 18 or Over 64
 6. Per Capita Income
-7. Harship Index
+7. Hardship Index
 
 # Launch this application in your R console
-![how to run](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/how_to_run_app.png)
+```R
+# Install necessary packages
+install.packages( c( "shiny", "htmltools", "sp", "devtools", "rgdal" ) )
+
+# install 'leaflet' package from source
+# for more info, click here: https://rstudio.github.io/leaflet/
+devtools::install_github( "rstudio/leaflet" )
+
+# Load necessary packages
+library( shiny )
+
+# Run shiny app from your Rstudio console
+shiny::runUrl( "https://github.com/gracehwang9584/ACS_Hardship_Index/archive/master.zip" )
+```
 
 # Screenshots of ACS_Hardship_Index app
 ![per capita income](https://github.com/gracehwang9584/ACS_Hardship_Index/blob/master/Images/per_capita_income.png)
