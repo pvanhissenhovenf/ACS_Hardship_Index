@@ -23,4 +23,4 @@ With the map, you can visually analyze the socioeconomic indicators across diffe
 # Supervisor
 - Cristian Nuno
 
-**Last updated on January 9, 2018**
+**Last updated on February 2, 2018**
