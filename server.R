@@ -32,11 +32,11 @@ server <- function( input, output ) {
         addLegend( "bottomright"
                    , colors = color.ramp
                    , title = "Legend"
-                   , labels = c( "0.3% - 1.8%"
-                                 , "1.9% - 3.2%"
-                                 , "3.3% - 4.5%"
-                                 , "4.6% - 7.4%"
-                                 , "7.5% - 15.8%" )
+                   , labels = c( "0.46% - 3.2%"
+                                 , "3.3% - 6%"
+                                 , "6.1% - 8.8%"
+                                 , "8.9% - 11.5%"
+                                 , "11.6% - 14.29%" )
                    , opacity = 1
                    , group = "Percent of Crowded Housing" ) %>%
         addControl( html = mapTitle
@@ -49,11 +49,11 @@ server <- function( input, output ) {
         addLegend( "bottomright"
                    , colors = color.ramp
                    , title = "Legend"
-                   , labels = c( "3.3% - 12.3%"
-                                 , "12.9% - 16.9%"
-                                 , "17.1% - 21.7%"
-                                 , "23.4% - 29.6%"
-                                 , "29.8% - 56.5%" )
+                   , labels = c( "3.27% - 14.5%"
+                                 , "14.6% - 25.8%"
+                                 , "25.9% - 37%"
+                                 , "37.1% - 48.3%"
+                                 , "48.4% - 59.57%" )
                    , opacity = 1
                    , group = "Percent of Households Below Poverty" ) %>%
         addControl( html = mapTitle
@@ -66,11 +66,11 @@ server <- function( input, output ) {
         addLegend( "bottomright"
                    , colors = color.ramp
                    , title = "Legend"
-                   , labels = c( "4.7%- 8.7%"
-                                 , "8.8% - 11.7%"
-                                 , "12.1% - 16.5%"
-                                 , "16.7% - 21.1%"
-                                 , "21.2% - 35.9%" )
+                   , labels = c( "3.22%- 10%"
+                                 , "10.1% - 16.7%"
+                                 , "16.8% - 23.4%"
+                                 , "23.5% - 30.2%"
+                                 , "30.3% - 36.93%" )
                    , opacity = 1
                    , group = "Percent of Aged 16+ Unemployed" ) %>%
         addControl( html = mapTitle
@@ -83,11 +83,11 @@ server <- function( input, output ) {
         addLegend( "bottomright"
                    , colors = color.ramp
                    , title = "Legend"
-                   , labels = c( "2.5% - 10.9%"
-                                 , "11.0% - 15.9%"
-                                 , "16.2% - 20.8%"
-                                 , "21.0% - 28.5%"
-                                 , "31.2% - 54.8%" )
+                   , labels = c( "1.61% - 11.2%"
+                                 , "11.3% - 20.8%"
+                                 , "20.9% - 30.4%"
+                                 , "30.5% - 40%"
+                                 , "40.1% - 49.64%" )
                    , opacity = 1
                    , group = "Percent of Aged 25+ Without High School Diploma" ) %>%
         addControl( html = mapTitle
@@ -100,11 +100,11 @@ server <- function( input, output ) {
         addLegend( "bottomright"
                    , colors = color.ramp
                    , title = "Legend"
-                   , labels = c( "13.5% - 30.7%"
-                                 , "31.0% - 36.4%"
-                                 , "36.8% - 39.0%"
-                                 , "39.2% - 41.0%"
-                                 , "41.1% - 51.5%" )
+                   , labels = c( "14.24% - 20.9%"
+                                 , "21% - 27.6%"
+                                 , "27.7% - 34.3%"
+                                 , "34.4% - 41%"
+                                 , "41.1% - 47.7%" )
                    , opacity = 1
                    , group = "Percent of Aged Under 18 or Over 64" ) %>%
         addControl( html = mapTitle
@@ -117,11 +117,11 @@ server <- function( input, output ) {
         addLegend( "bottomright"
                    , colors = color.ramp
                    , title = "Legend"
-                   , labels = c( "$8,201 - $14,685"
-                                 , "$15,089 - $17,949"
-                                 , "$18,672 - $23,791"
-                                 , "$23,939 - $33,385"
-                                 , "$34,381 - $88,669" )
+                   , labels = c( "$8,425 - $24,400"
+                                 , "$24,401 - $40,500"
+                                 , "$40,501 - $56,500"
+                                 , "$56,501 - $72,500"
+                                 , "$72,501 - $88,507" )
                    , opacity = 1
                    , group = "Per Capita Income" ) %>%
         addControl( html = mapTitle
@@ -134,11 +134,11 @@ server <- function( input, output ) {
         addLegend( "bottomright"
                    , colors = color.ramp
                    , title = "Legend"
-                   , labels = c( "1 - 20"
-                                 , "21 - 39"
-                                 , "41 - 58"
-                                 , "60 - 78"
-                                 , "79 - 98" )
+                   , labels = c( "8.58 - 24.2"
+                                 , "24.3 - 39.8"
+                                 , "39.9 - 55.4"
+                                 , "55.5 - 71"
+                                 , "71.1 - 86.6" )
                    , opacity = 1
                    , group = "Hardship Index" ) %>%
         addControl( html = mapTitle
