@@ -25,7 +25,7 @@ devtools::install_github( "rstudio/leaflet" )
 library( shiny )
 
 # Run shiny app from your Rstudio console
-shiny::runUrl( "https://github.com/gracehwang9584/ACS_Hardship_Index/archive/master.zip" )
+shiny::runUrl( "https://github.com/pvanhissenhovenf/ACS_Hardship_Index/archive/master.zip" )
 ```
 
 # Screenshots of ACS_Hardship_Index app
