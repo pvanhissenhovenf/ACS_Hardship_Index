@@ -1,15 +1,11 @@
 ---
-title: "Untitled"
+title: ".README Images Folder"
 author: "Patricia van Hissenhoven"
 date: "2/6/2018"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 ## Images Folder
 
-This folder contains the images used in the app. 
-
+This folder contains images of the app used in the application's .README file. 
