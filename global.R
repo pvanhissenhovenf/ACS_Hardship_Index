@@ -15,10 +15,10 @@ library( rgdal )
 ###########################
 ## Load necessary data ##
 ###########################
-census.data <- readRDS( "/Users/gracehwang/Desktop/Census Data/Hardship_Index/Data/hardship.rds" )
+census.data <- readRDS( gzcon( url( description = "https://github.com/pvanhissenhovenf/ACS_Hardship_Index/blob/master/Data/hardship.rds?raw=true" ) ) )
 
 # Transform URL into spatial dataframe
-comarea <- readRDS( "/Users/gracehwang/Desktop/Census Data/Hardship_Index/Data/comarea.rds" )
+comarea <- readRDS( gzcon( url( description = "https://github.com/pvanhissenhovenf/ACS_Hardship_Index/blob/master/Data/comarea.rds?raw=true" ) ) )
 
 # Merge the non-spatial data frame onto spatial polygon data frame
 comarea <- sp::merge( x = comarea
