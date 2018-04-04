@@ -21,8 +21,9 @@ library( rgdal )
 
 ## load necessary data
 
-# my personal acs api key
-my.key <- "6b2a3bf0f9ec6f097062213125bc40cad0351578"
+# assumption that a census api key is already installed on your system
+# here, the key is stored as CENSUS_API_KEY=YOURKEY in the .Renviron file
+  census_api_key( key = Sys.getenv( x = "CENSUS_API_KEY" ) )
 
 
 # Table Shells for ACS 2012-2016 5-Year Estimate Data
