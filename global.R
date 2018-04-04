@@ -169,7 +169,7 @@ northArrowIcon <- "<img src='http://ian.umces.edu/imagelibrary/albums/userpics/1
 # make custom map title
 mapTitle <- paste0(
   "<p style='color:#660066; font-size:20px;'>"
-  , "Census Data - Selected socioeconomic indicators in Chicago, 2008 - 2012"
+  , "Census Data - Selected socioeconomic indicators in Chicago, 2012 - 2016"
   , "</p>"
 )
 
